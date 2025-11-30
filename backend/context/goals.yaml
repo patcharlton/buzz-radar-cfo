@@ -1,0 +1,69 @@
+# Financial and Strategic Goals for Buzz Radar Limited
+# Used by AI CFO to contextualise recommendations
+
+financial_goals:
+  # Short-term (this year)
+  current_year:
+    revenue_target: 1500000  # £1.5M
+    profit_margin_target: 20  # 20%
+    cash_reserve_target: 300000  # 3 months operating costs
+    receivables_days_target: 45  # DSO target
+
+  # Medium-term (2-3 years)
+  medium_term:
+    revenue_target: 3000000  # £3M by 2027
+    new_clients_target: 5  # Net new enterprise clients per year
+    retention_rate_target: 90  # %
+
+  # Long-term (exit)
+  exit_planning:
+    target_year: 2030
+    valuation_target_min: 35000000
+    valuation_target_max: 50000000
+    revenue_multiple_assumption: 8  # Expected valuation multiple
+    ebitda_multiple_assumption: 15
+
+strategic_goals:
+  this_quarter:
+    - goal: "Secure ViiV renewal"
+      priority: "critical"
+      owner: "Patrick"
+      deadline: "2024-12-31"
+      notes: "£650k at stake. Need executive engagement."
+
+    - goal: "Close Bayer deal"
+      priority: "high"
+      owner: "Sales"
+      deadline: "2025-01-31"
+      notes: "Would offset ViiV risk"
+
+    - goal: "Reduce overdue receivables"
+      priority: "medium"
+      owner: "Finance"
+      deadline: "2024-12-15"
+      notes: "Chase outstanding invoices over 30 days"
+
+  this_year:
+    - goal: "Expand into US market"
+      priority: "medium"
+      owner: "Patrick"
+      notes: "Exploratory - identify first US client"
+
+    - goal: "Build recurring revenue to 80%"
+      priority: "high"
+      notes: "Reduce dependency on project work"
+
+    - goal: "Hire senior developer"
+      priority: "medium"
+      notes: "Dependent on cash position and pipeline"
+
+growth_priorities:
+  - "Client retention (especially at-risk accounts)"
+  - "Upsell existing clients"
+  - "New logo acquisition in pharma"
+  - "Product development for AI capabilities"
+
+risk_mitigation:
+  - "Diversify client base (reduce ViiV concentration)"
+  - "Build relationships at multiple levels in key accounts"
+  - "Maintain 3-month cash reserve"

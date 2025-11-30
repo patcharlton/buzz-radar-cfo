@@ -1,0 +1,58 @@
+# Business Context for Buzz Radar Limited
+# This file contains core company information used by the AI CFO
+
+company:
+  name: "Buzz Radar Limited"
+  legal_entity: "UK Limited Company"
+  industry: "Pharmaceutical Marketing Intelligence / SaaS"
+  founded: 2015
+  location: "United Kingdom"
+  currency: "GBP"
+
+# Core product/service offering
+product:
+  name: "BRIANN"
+  description: "AI-powered platform for pharmaceutical marketing compliance and intelligence"
+  type: "B2B SaaS"
+  target_market: "Pharmaceutical and healthcare companies"
+
+# Revenue model
+revenue_model:
+  type: "Subscription + Project-based"
+  annual_revenue: 1300000  # £1.3M
+  profitable: true
+  # Typical contract structure
+  contract_types:
+    - name: "Digital Listening Program"
+      typical_value: 500000  # £500k+
+      duration_months: 12
+    - name: "Compliance Monitoring"
+      typical_value: 150000
+      duration_months: 12
+    - name: "Ad-hoc Projects"
+      typical_value: 50000
+      duration_months: 3
+
+# Team structure (for burn rate context)
+team:
+  headcount: 12
+  monthly_payroll: 65000  # Approximate
+  contractors: 2
+
+# Key costs
+operating_costs:
+  monthly_overhead: 25000  # Office, software, infrastructure
+  cloud_hosting: 8000
+  marketing: 5000
+
+# Strategic context
+strategy:
+  exit_goal: "Trade sale or acquisition"
+  target_valuation_min: 35000000  # £35M
+  target_valuation_max: 50000000  # £50M
+  target_year: 2030
+  key_value_drivers:
+    - "Recurring revenue growth"
+    - "Client retention in pharma sector"
+    - "AI/ML technology differentiation"
+    - "Regulatory compliance expertise"

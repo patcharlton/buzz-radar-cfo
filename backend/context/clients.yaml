@@ -1,0 +1,303 @@
+# Buzz Radar Client Portfolio
+# Updated November 2025
+
+# Client tiers based on revenue and strategic importance
+client_tiers:
+  major: "£100k+ annual value or strategic importance"
+  growth: "£30k-100k with expansion potential"
+  pilot: "£30k pilots with upsell opportunity"
+  prospect: "In pipeline, not yet closed"
+
+clients:
+
+  # MAJOR CLIENTS
+  - name: "ViiV Healthcare"
+    tier: "Major"
+    relationship_status: "Active - Multiple Programs"
+    parent_company: "GSK/Pfizer/Shionogi JV"
+
+    current_contracts:
+      - program: "Digital Listening Program"
+        annual_value: 650000
+        status: "At Risk"
+        risk_factors:
+          - "Internal restructuring moved budget control"
+          - "Competing vendor-friendly teams now involved"
+        notes: "Need to shift from defensive positioning"
+
+    pipeline_opportunities:
+      - name: "ViiV Comms Congress"
+        value: 45000
+        stage: "Verbal Agreement"
+        likelihood: 8
+      - name: "ViiV DOL CX"
+        value: 100000
+        stage: "Proposal Being Reviewed"
+        likelihood: 5
+      - name: "ViiV International Region V2"
+        value: 250000
+        stage: "Build Proposal"
+        likelihood: 3
+
+    key_contacts:
+      - name: "Alejandro Potes"
+        role: "Congress lead"
+      - name: "Mary Andrews"
+        role: "DOL decision maker"
+      - name: "Hugo Barbosa"
+        role: "International region"
+
+    total_potential: 1045000  # Current + pipeline
+    account_owner: "Patrick Charlton"
+
+  - name: "GSK"
+    tier: "Major"
+    relationship_status: "Active - Growing"
+
+    current_contracts:
+      - program: "Blenrep"
+        annual_value: 250000
+        status: "Renewal Pending"
+        renewal_stage: "Proposal Being Reviewed"
+        likelihood: 9
+        expected_close: "2025-11-30"
+        decision_maker: "Ale"
+        notes: "Critical renewal - high confidence"
+
+    pipeline_opportunities:
+      - name: "GSK Medical Patient Engagement - Oncology"
+        value: 250000
+        max_value: 500000
+        stage: "Warm Lead"
+        likelihood: 7
+        expected_close: "2026-01-31"
+        notes: "Large oncology program - high priority"
+      - name: "GSK Sci Coms BRIANN Pilot"
+        value: 30000
+        stage: "Warm Lead"
+        likelihood: 3
+
+    key_contacts:
+      - name: "Ale"
+        role: "Blenrep & Oncology lead"
+
+    total_potential: 780000
+    priority: "Critical"
+
+  - name: "Johnson & Johnson MedTech"
+    tier: "Major"
+    relationship_status: "Active - Rapidly Expanding"
+
+    pipeline_opportunities:
+      - name: "JJMT US Engagement"
+        value: 100000
+        stage: "Procurement"
+        likelihood: 10
+        expected_close: "2025-11-01"  # Overdue
+        notes: "In procurement - needs chasing"
+      - name: "JJMT US Change Management"
+        value: 90000
+        stage: "Build Proposal"
+        likelihood: 5
+      - name: "JJMT Europe"
+        value: 175000
+        stage: "Warm Lead"
+        likelihood: 5
+      - name: "JJMT Vision"
+        value: 175000
+        stage: "Warm Lead"
+        likelihood: 5
+
+    key_contacts:
+      - name: "Gabriel Medeiros"
+        role: "Primary contact - all programs"
+
+    total_pipeline: 540000
+    notes: "Strong relationship, multiple divisions engaged"
+    priority: "High"
+
+  - name: "Bayer"
+    tier: "Major"
+    relationship_status: "Active - Growing"
+
+    pipeline_opportunities:
+      - name: "Bayer Nubeqa SOV 25/26"
+        value: 50000
+        stage: "Procurement"
+        likelihood: 10
+        expected_close: "2025-10-01"  # Overdue
+        notes: "In procurement - should have closed"
+      - name: "Bayer DOL"
+        value: 100000
+        stage: "Proposal Being Reviewed"
+        likelihood: 5
+        expected_close: "2025-11-30"
+        last_contact: "2025-11-14"
+      - name: "Bayer Nubeqa SOV 26/27"
+        value: 50000
+        stage: "Warm Lead"
+        likelihood: 7
+        expected_close: "2026-06-30"
+
+    key_contacts:
+      - name: "Carolyn Austring"
+        role: "Nubeqa program"
+      - name: "Jim Gawley"
+        role: "DOL program"
+
+    total_pipeline: 200000
+    account_owner: "Patrick Charlton"
+
+  # GROWTH CLIENTS
+  - name: "Abbott"
+    tier: "Growth"
+    relationship_status: "Active"
+
+    pipeline_opportunities:
+      - name: "Abbott CES"
+        value: 20000
+        stage: "Procurement"
+        likelihood: 5
+        expected_close: "2025-12-12"
+
+    key_contacts:
+      - name: "Simon Goldberg"
+        role: "Decision maker"
+
+  - name: "CTA (Consumer Technology Association)"
+    tier: "Growth"
+    relationship_status: "Active Partner"
+
+    current_contracts:
+      - program: "CES Partnership"
+        annual_value: 30000
+        status: "Won"
+        notes: "CES 2026 confirmed"
+
+    key_contacts:
+      - name: "nvidovich@cta.tech"
+        role: "Primary contact"
+
+  - name: "Ferring Pharmaceuticals"
+    tier: "Growth"
+    relationship_status: "New - Closing"
+
+    pipeline_opportunities:
+      - name: "Ferring BRIANN Pilot"
+        value: 30000
+        expansion_potential: 245000
+        stage: "Verbal Agreement"
+        likelihood: 8
+        expected_close: "2025-11-30"
+
+    key_contacts:
+      - name: "Jennifer Cleall"
+        role: "Decision maker"
+
+    notes: "New logo win - high expansion potential"
+
+  # PROSPECTS - NEW LOGOS
+  - name: "Gilead Sciences"
+    tier: "Prospect"
+    relationship_status: "New Business"
+
+    pipeline_opportunities:
+      - name: "Gilead Command Centre Congress"
+        value: 125000
+        stage: "Warm Lead"
+        likelihood: 5
+
+    notes: "New logo opportunity - congress command centre"
+
+  - name: "Jazz Pharmaceuticals"
+    tier: "Prospect"
+    relationship_status: "New Business"
+
+    pipeline_opportunities:
+      - name: "Jazz Pharmaceuticals"
+        value: 100000
+        stage: "Warm Lead"
+        likelihood: 3
+        expected_close: "2025-12-31"
+
+    key_contacts:
+      - name: "Loucif"
+        role: "Primary contact"
+
+  - name: "Merck"
+    tier: "Prospect"
+    relationship_status: "New Business"
+
+    pipeline_opportunities:
+      - name: "Merck BRIANN Pilot"
+        value: 30000
+        expansion_potential: 245000
+        stage: "Warm Lead"
+        likelihood: 5
+        expected_close: "2025-12-31"
+
+    key_contacts:
+      - name: "Jason Yau"
+        role: "Decision maker"
+
+  # COLD LEADS - BRIANN PILOT PROSPECTS
+  - name: "UCB"
+    tier: "Prospect"
+    relationship_status: "Cold Lead"
+    pipeline_value: 30000
+    expansion_potential: 240000
+    notes: "BRIANN pilot opportunity"
+
+  - name: "Chugai Pharmaceutical"
+    tier: "Prospect"
+    relationship_status: "Cold Lead"
+    pipeline_value: 30000
+    expansion_potential: 240000
+    notes: "BRIANN pilot opportunity"
+
+  - name: "CSL Behring"
+    tier: "Prospect"
+    relationship_status: "Cold Lead"
+    pipeline_value: 30000
+    expansion_potential: 240000
+    notes: "BRIANN pilot opportunity"
+
+  - name: "Vertex Pharmaceuticals"
+    tier: "Prospect"
+    relationship_status: "Cold Lead"
+    pipeline_value: 30000
+    expansion_potential: 240000
+    notes: "BRIANN pilot opportunity"
+
+  - name: "BioMarin"
+    tier: "Prospect"
+    relationship_status: "Cold Lead"
+    pipeline_value: 30000
+    expansion_potential: 240000
+    notes: "BRIANN pilot opportunity"
+
+# Portfolio analysis
+portfolio_analysis:
+
+  concentration:
+    viiv_percentage: 50  # Of current revenue
+    risk_level: "High"
+    target_max_single_client: 30
+    mitigation: "Actively diversifying with JJMT, Bayer, and new logos"
+
+  revenue_at_risk:
+    viiv_dlp: 650000
+    gsk_blenrep: 250000  # Renewal pending
+    total_at_risk: 900000
+
+  growth_opportunities:
+    jjmt_expansion: 540000
+    gsk_oncology: 500000
+    new_logos: 355000  # Gilead, Jazz, Merck
+    briann_pilots: 150000  # 5 cold leads x £30k
+    briann_expansion: 1200000  # If all pilots expand
+
+  client_count:
+    active_revenue: 4  # ViiV, GSK, Abbott, CTA
+    closing_soon: 3  # Ferring, JJMT, Bayer
+    prospects: 8  # Gilead, Jazz, Merck, UCB, Chugai, CSL, Vertex, BioMarin

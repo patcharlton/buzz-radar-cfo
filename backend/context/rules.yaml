@@ -1,0 +1,161 @@
+# Buzz Radar Financial Rules and Thresholds
+# For AI CFO analysis and alerts
+
+cash_management:
+  minimum_balance: 150000  # Absolute minimum - triggers critical alert
+  comfortable_balance: 300000  # 3 months runway target
+  alert_threshold: 200000  # Warning when below this
+
+  runway_calculation:
+    method: "average_monthly_burn"
+    minimum_months: 3
+    target_months: 6
+    estimated_monthly_burn: 80000  # Update based on actuals
+
+receivables:
+  payment_terms_default: 30
+  overdue_threshold: 7  # Days past due before flagging
+  critical_threshold: 30  # Days past due = critical
+  pharma_typical_terms: 45  # Large pharma often pay slower
+
+  collection_priority:
+    - "Overdue > 30 days first"
+    - "Large invoices (>£20k)"
+    - "Key accounts handled diplomatically"
+
+  bad_debt_reserve: 0.02  # 2% provision on receivables
+
+payables:
+  early_payment_discount: false
+  payment_timing: "On due date"  # Preserve cash
+  critical_vendors: []  # Add any must-pay-early vendors
+
+# Pipeline and forecasting rules
+pipeline:
+
+  stage_conversion_rates:
+    verbal_agreement: 0.85
+    procurement: 0.80
+    proposal_being_reviewed: 0.50
+    build_proposal: 0.35
+    warm_lead: 0.25
+    cold_lead: 0.10
+
+  # Use these for weighted pipeline calculations
+  likelihood_weights:
+    10: 1.0   # Won/certain
+    9: 0.9
+    8: 0.8
+    7: 0.7
+    6: 0.6
+    5: 0.5
+    4: 0.4
+    3: 0.3
+    2: 0.2
+    1: 0.1
+
+  forecast_confidence:
+    committed: "Won + Verbal Agreement (likelihood >= 8)"
+    high_confidence: "Procurement + likelihood >= 7"
+    pipeline: "Proposal + Build Proposal"
+    upside: "Warm Lead + Cold Lead"
+
+  # Alert thresholds
+  alerts:
+    - condition: "deal_overdue > 14 days"
+      severity: "Warning"
+      message: "Deal expected close date passed by 2+ weeks"
+
+    - condition: "deal_overdue > 30 days"
+      severity: "Critical"
+      message: "Deal significantly overdue - requires attention"
+
+    - condition: "no_contact > 14 days"
+      severity: "Warning"
+      message: "No contact logged in 2 weeks on active deal"
+
+profitability:
+  gross_margin_target: 70
+  gross_margin_minimum: 60
+  net_margin_target: 20
+  net_margin_minimum: 10
+
+  # Project-level profitability
+  minimum_project_margin: 50
+  briann_pilot_margin: 80  # SaaS pilots are high margin
+  services_margin: 40  # Consulting/services lower margin
+
+revenue:
+  annual_target: 1500000  # £1.5M target
+  current_run_rate: 1300000  # £1.3M current
+  monthly_target: 125000  # Based on £1.5M target
+
+  variance_alert_threshold: 20  # Alert if >20% below target
+
+  # Quarterly targets
+  q4_2025_target: 375000  # Oct-Dec
+  q1_2026_target: 400000  # Jan-Mar
+
+  seasonality:
+    - month: "December"
+      factor: 0.8
+      notes: "Holiday slowdown, delayed decisions"
+    - month: "January"
+      factor: 0.7
+      notes: "Slow start, budget approvals"
+    - month: "Q4"
+      factor: 0.9
+      notes: "Pharma budget cycles often delay Q4 decisions to Q1"
+
+client_health:
+  concentration_warning: 40  # Single client > 40% = warning
+  concentration_critical: 50  # Single client > 50% = critical
+
+  diversification_target:
+    max_single_client: 30
+    min_clients_for_stability: 6  # At £100k+ each
+
+  at_risk_review_frequency: "weekly"
+
+  renewal_alert_days: 90  # Alert 90 days before renewal
+
+  churn_risk_indicators:
+    - "Internal restructuring at client"
+    - "Stakeholder/champion change"
+    - "Budget constraints mentioned"
+    - "Competitor activity"
+    - "No contact > 30 days"
+
+# Forecasting scenarios
+forecast_scenarios:
+
+  conservative:
+    description: "Only count Won + Verbal Agreement"
+    pipeline_multiplier: 0
+    verbal_multiplier: 0.8
+
+  base:
+    description: "Weighted by likelihood scores"
+    use_likelihood_weights: true
+
+  optimistic:
+    description: "Best case on high-confidence deals"
+    use_best_case: true
+    min_likelihood: 5
+
+# Decision support thresholds
+decisions:
+
+  hiring:
+    minimum_runway_months: 6
+    minimum_confirmed_revenue: 100000  # Per quarter
+    pipeline_coverage_ratio: 3  # 3x pipeline to target
+
+  investment:
+    minimum_cash_after: 200000
+    maximum_payback_months: 12
+
+  pricing:
+    minimum_project_size: 20000  # Don't take <£20k projects
+    pilot_minimum: 30000
+    pilot_expansion_target: 8  # 8x pilot value

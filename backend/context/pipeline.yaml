@@ -1,0 +1,359 @@
+# Buzz Radar Sales Pipeline - Updated November 2025
+# This file should be updated regularly as deals progress
+
+pipeline_summary:
+  total_pipeline_value: 2020000  # £2.02M total deal value
+  weighted_pipeline: 850000  # Approximate weighted value based on likelihood
+  deals_count: 24
+  last_updated: "2025-11-30"
+
+# Deal stages in order of progression
+deal_stages:
+  - name: "Won"
+    description: "Deal closed and confirmed"
+  - name: "Verbal Agreement"
+    description: "Client has verbally committed, awaiting paperwork"
+  - name: "Procurement"
+    description: "In client procurement/legal process"
+  - name: "Proposal Being Reviewed"
+    description: "Proposal submitted, awaiting decision"
+  - name: "Build Proposal"
+    description: "Actively building proposal for submission"
+  - name: "Warm Lead"
+    description: "Engaged prospect, qualifying opportunity"
+  - name: "Cold Lead"
+    description: "Initial contact, early stage"
+
+# Active deals by stage
+deals:
+
+  # WON
+  - name: "CES 2026"
+    client: "CTA (Consumer Technology Association)"
+    stage: "Won"
+    deal_value: 30000
+    likelihood: 10
+    expected_close: "2025-12-01"
+    decision_maker: "nvidovich@cta.tech"
+    revenue_min: 30000
+    revenue_max: 30000
+    notes: "Annual partnership confirmed"
+
+  # VERBAL AGREEMENT (high confidence)
+  - name: "ViiV Comms Congress"
+    client: "ViiV Healthcare"
+    stage: "Verbal Agreement"
+    deal_value: 45000
+    likelihood: 8
+    expected_close: "2025-12-15"
+    decision_maker: "Alejandro Potes"
+    revenue_min: 45000
+    revenue_max: 45000
+    notes: "Congress support project"
+
+  - name: "Ferring BRIANN Pilot"
+    client: "Ferring Pharmaceuticals"
+    stage: "Verbal Agreement"
+    deal_value: 30000
+    likelihood: 8
+    expected_close: "2025-11-30"
+    decision_maker: "Jennifer Cleall"
+    revenue_min: 30000
+    revenue_max: 245000
+    worst_case: 24000
+    best_case: 196000
+    notes: "BRIANN pilot with significant expansion potential"
+
+  # PROCUREMENT (in buying process)
+  - name: "Bayer Nubeqa SOV 25/26"
+    client: "Bayer"
+    stage: "Procurement"
+    deal_value: 50000
+    likelihood: 10
+    expected_close: "2025-10-01"  # Note: past date - may need chasing
+    decision_maker: "Carolyn Austring"
+    notes: "Share of Voice tracking - in procurement, should be closing"
+
+  - name: "JJMT US Engagement"
+    client: "Johnson & Johnson MedTech"
+    stage: "Procurement"
+    deal_value: 100000
+    likelihood: 10
+    expected_close: "2025-11-01"  # Note: past date
+    decision_maker: "Gabriel Medeiros"
+    notes: "US engagement program - procurement stage"
+
+  - name: "Abbott CES"
+    client: "Abbott"
+    stage: "Procurement"
+    deal_value: 20000
+    likelihood: 5
+    expected_close: "2025-12-12"
+    decision_maker: "Simon Goldberg"
+    revenue_min: 30000
+    revenue_max: 30000
+    worst_case: 15000
+    best_case: 15000
+    notes: "CES activation project"
+
+  # PROPOSAL BEING REVIEWED
+  - name: "Blenrep (GSK)"
+    client: "GSK"
+    stage: "Proposal Being Reviewed"
+    deal_value: 250000
+    likelihood: 9
+    expected_close: "2025-11-30"
+    decision_maker: "Ale"
+    revenue_min: 250000
+    revenue_max: 250000
+    worst_case: 225000
+    best_case: 225000
+    notes: "Major renewal - high likelihood, critical deal"
+    priority: "Critical"
+
+  - name: "ViiV DOL CX"
+    client: "ViiV Healthcare"
+    stage: "Proposal Being Reviewed"
+    deal_value: 100000
+    likelihood: 5
+    expected_close: "2025-12-15"
+    decision_maker: "Mary Andrews"
+    account_owner: "Patrick Charlton"
+    revenue_min: 50000
+    revenue_max: 130000
+    worst_case: 25000
+    best_case: 65000
+    notes: "Digital Opinion Leader customer experience program"
+
+  - name: "Bayer DOL"
+    client: "Bayer"
+    stage: "Proposal Being Reviewed"
+    deal_value: 100000
+    likelihood: 5
+    expected_close: "2025-11-30"
+    last_contact: "2025-11-14"
+    decision_maker: "Jim Gawley"
+    account_owner: "Patrick Charlton"
+    revenue_min: 100000
+    revenue_max: 100000
+    worst_case: 50000
+    best_case: 50000
+    notes: "DOL tracking program"
+
+  # BUILD PROPOSAL
+  - name: "ViiV International Region V2"
+    client: "ViiV Healthcare"
+    stage: "Build Proposal"
+    deal_value: 250000
+    likelihood: 3
+    expected_close: "2025-12-10"
+    last_contact: "2025-11-13"
+    decision_maker: "Hugo Barbosa"
+    account_owner: "Patrick Charlton"
+    revenue_min: 0
+    revenue_max: 250000
+    worst_case: 0
+    best_case: 75000
+    notes: "International expansion - lower confidence"
+
+  - name: "JJMT US Change Management"
+    client: "Johnson & Johnson MedTech"
+    stage: "Build Proposal"
+    deal_value: 90000
+    likelihood: 5
+    expected_close: "2025-12-02"
+    decision_maker: "Gabriel Medeiros"
+    revenue_min: 50000
+    revenue_max: 50000
+    worst_case: 25000
+    best_case: 25000
+    notes: "Change management consulting"
+
+  # WARM LEADS
+  - name: "GSK Medical Patient Engagement - Oncology"
+    client: "GSK"
+    stage: "Warm Lead"
+    deal_value: 250000
+    likelihood: 7
+    expected_close: "2026-01-31"
+    decision_maker: "Ale"
+    account_owner: "Patrick Charlton"
+    revenue_min: 250000
+    revenue_max: 500000
+    worst_case: 175000
+    best_case: 350000
+    notes: "Large oncology program - strong potential"
+    priority: "High"
+
+  - name: "JJMT Europe"
+    client: "Johnson & Johnson MedTech"
+    stage: "Warm Lead"
+    deal_value: 175000
+    likelihood: 5
+    expected_close: "2026-01-31"
+    decision_maker: "Gabriel Medeiros"
+    revenue_min: 175000
+    revenue_max: 250000
+    worst_case: 87500
+    best_case: 125000
+    notes: "European expansion from US success"
+
+  - name: "JJMT Vision"
+    client: "Johnson & Johnson MedTech"
+    stage: "Warm Lead"
+    deal_value: 175000
+    likelihood: 5
+    expected_close: "2026-01-31"
+    decision_maker: "Gabriel Medeiros"
+    revenue_min: 175000
+    revenue_max: 250000
+    worst_case: 87500
+    best_case: 125000
+    notes: "Vision division opportunity"
+
+  - name: "Bayer Nubeqa SOV 26/27"
+    client: "Bayer"
+    stage: "Warm Lead"
+    deal_value: 50000
+    likelihood: 7
+    expected_close: "2026-06-30"
+    decision_maker: "Carolyn Austring"
+    revenue_min: 50000
+    revenue_max: 125000
+    worst_case: 35000
+    best_case: 87500
+    notes: "Renewal/expansion of 25/26 contract"
+
+  - name: "Gilead Command Centre Congress"
+    client: "Gilead Sciences"
+    stage: "Warm Lead"
+    deal_value: 125000
+    likelihood: 5
+    revenue_min: 125000
+    revenue_max: 125000
+    worst_case: 62500
+    best_case: 62500
+    notes: "Congress command centre - new client opportunity"
+
+  - name: "Jazz Pharmaceuticals"
+    client: "Jazz Pharmaceuticals"
+    stage: "Warm Lead"
+    deal_value: 100000
+    likelihood: 3
+    expected_close: "2025-12-31"
+    decision_maker: "Loucif"
+    revenue_min: 100000
+    revenue_max: 100000
+    worst_case: 30000
+    best_case: 30000
+    notes: "New client - early conversations"
+
+  - name: "Merck BRIANN Pilot"
+    client: "Merck"
+    stage: "Warm Lead"
+    deal_value: 30000
+    likelihood: 5
+    expected_close: "2025-12-31"
+    decision_maker: "Jason Yau"
+    revenue_min: 30000
+    revenue_max: 245000
+    worst_case: 15000
+    best_case: 122500
+    notes: "BRIANN pilot with expansion potential"
+
+  - name: "GSK Sci Coms BRIANN Pilot"
+    client: "GSK"
+    stage: "Warm Lead"
+    deal_value: 30000
+    likelihood: 3
+    expected_close: "2026-01-31"
+    decision_maker: "Jennifer Cleall"
+    revenue_min: 30000
+    revenue_max: 245000
+    worst_case: 9000
+    best_case: 73500
+    notes: "Scientific communications team pilot"
+
+  # COLD LEADS (BRIANN pilot expansion opportunities)
+  - name: "UCB BRIANN Pilot"
+    client: "UCB"
+    stage: "Cold Lead"
+    deal_value: 30000
+    likelihood: 5
+    revenue_min: 30000
+    revenue_max: 240000
+    worst_case: 15000
+    best_case: 120000
+    notes: "Early stage BRIANN interest"
+
+  - name: "Chugai BRIANN Pilot"
+    client: "Chugai Pharmaceutical"
+    stage: "Cold Lead"
+    deal_value: 30000
+    likelihood: 5
+    revenue_min: 30000
+    revenue_max: 240000
+    worst_case: 15000
+    best_case: 120000
+    notes: "Early stage BRIANN interest"
+
+  - name: "CSL BRIANN Pilot"
+    client: "CSL Behring"
+    stage: "Cold Lead"
+    deal_value: 30000
+    likelihood: 5
+    revenue_min: 30000
+    revenue_max: 240000
+    worst_case: 15000
+    best_case: 120000
+    notes: "Early stage BRIANN interest"
+
+  - name: "Vertex BRIANN Pilot"
+    client: "Vertex Pharmaceuticals"
+    stage: "Cold Lead"
+    deal_value: 30000
+    likelihood: 5
+    revenue_min: 30000
+    revenue_max: 240000
+    worst_case: 15000
+    best_case: 120000
+    notes: "Early stage BRIANN interest"
+
+  - name: "Bio Marin BRIANN Pilot"
+    client: "BioMarin"
+    stage: "Cold Lead"
+    deal_value: 30000
+    likelihood: 5
+    revenue_min: 30000
+    revenue_max: 240000
+    worst_case: 15000
+    best_case: 120000
+    notes: "Early stage BRIANN interest"
+
+# Forecast scenarios
+forecast:
+  # Deals closing by end of December 2025
+  q4_2025:
+    committed: 30000  # CES Won
+    high_confidence: 325000  # Verbal + High likelihood (Blenrep, ViiV Congress, Ferring, Bayer/JJMT procurement)
+    pipeline: 640000  # Proposals being reviewed + Build proposal
+    best_case: 995000
+    worst_case: 355000
+
+  # Deals closing Q1 2026
+  q1_2026:
+    pipeline: 680000  # GSK Oncology, JJMT Europe/Vision, GSK Sci Coms
+    best_case: 673500
+    worst_case: 358500
+
+# Key metrics for AI analysis
+analysis_notes:
+  concentration_risk: "JJMT represents 4 separate opportunities worth £540k total"
+  new_logo_opportunities: "Gilead, Jazz, Merck, UCB, Chugai, CSL, Vertex, BioMarin"
+  briann_pilot_strategy: "Multiple £30k pilots with £240k expansion potential each"
+  critical_deals:
+    - "Blenrep (GSK) - £250k at 90% likelihood, closing Nov 30"
+    - "GSK Oncology - £250k at 70% likelihood, high upside to £500k"
+  overdue_attention:
+    - "Bayer Nubeqa 25/26 - Expected Oct 1, still in procurement"
+    - "JJMT US Engagement - Expected Nov 1, still in procurement"
