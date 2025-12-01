@@ -10,6 +10,7 @@ import QuickQuestion from './QuickQuestion';
 import CashForecast from './CashForecast';
 import Anomalies from './Anomalies';
 import ProjectionWidget from './ProjectionWidget';
+import NotionSync from './NotionSync';
 
 function Dashboard() {
   const [isConnected, setIsConnected] = useState(false);
@@ -103,12 +104,13 @@ function Dashboard() {
         <div className="header-actions">
           {isConnected ? (
             <>
+              <NotionSync />
               <button
                 className="btn btn-secondary"
                 onClick={handleSync}
                 disabled={syncing}
               >
-                {syncing ? 'Syncing...' : 'Sync'}
+                {syncing ? 'Syncing...' : 'Sync Xero'}
               </button>
               <div className="connection-status connected">
                 <span className="status-dot connected"></span>

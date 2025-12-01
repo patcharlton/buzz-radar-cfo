@@ -9,7 +9,7 @@ from flask_cors import CORS
 
 from config import Config
 from database import init_db
-from routes import auth_bp, data_bp, ai_bp, projection_bp
+from routes import auth_bp, data_bp, ai_bp, projection_bp, notion_bp
 
 
 def create_app():
@@ -32,6 +32,7 @@ def create_app():
     app.register_blueprint(data_bp)
     app.register_blueprint(ai_bp)
     app.register_blueprint(projection_bp)
+    app.register_blueprint(notion_bp)
 
     # Health check endpoint
     @app.route('/health')

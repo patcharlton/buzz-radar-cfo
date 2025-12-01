@@ -173,4 +173,178 @@
   .h-full-card > [class*="CardContent"] {
     @apply flex-1;
   }
+
+  /* Button styles */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-colors;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply bg-zinc-900 text-white hover:bg-zinc-800;
+    @apply dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200;
+  }
+
+  .btn-secondary {
+    @apply bg-zinc-100 text-zinc-900 hover:bg-zinc-200;
+    @apply dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700;
+  }
+
+  .btn:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  /* Header styles */
+  .header {
+    @apply flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800;
+  }
+
+  .header h1 {
+    @apply text-xl font-semibold;
+  }
+
+  .header-actions {
+    @apply flex items-center gap-3;
+  }
+
+  /* Connection status */
+  .connection-status {
+    @apply flex items-center gap-2 text-sm;
+  }
+
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .status-dot.connected {
+    @apply bg-emerald-500;
+  }
+
+  .status-dot.disconnected {
+    @apply bg-red-500;
+  }
+
+  /* Notion sync component */
+  .notion-sync {
+    @apply flex items-center gap-2;
+  }
+
+  .notion-btn {
+    @apply flex items-center gap-2;
+  }
+
+  .notion-icon {
+    @apply w-4 h-4;
+  }
+
+  .notion-icon.spin {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .notion-status {
+    @apply flex items-center;
+  }
+
+  /* App container */
+  .app {
+    @apply min-h-screen bg-zinc-50 dark:bg-zinc-950;
+  }
+
+  /* Loading states */
+  .loading {
+    @apply flex items-center justify-center py-12;
+  }
+
+  .spinner {
+    @apply w-8 h-8 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin;
+    @apply dark:border-zinc-700 dark:border-t-zinc-100;
+  }
+
+  /* Error display */
+  .error {
+    @apply mx-6 my-4 p-4 bg-red-50 text-red-700 rounded-md;
+    @apply dark:bg-red-950 dark:text-red-300;
+  }
+
+  /* Connect prompt */
+  .connect-prompt {
+    @apply max-w-md mx-auto text-center py-12 px-6;
+  }
+
+  .connect-prompt h2 {
+    @apply text-2xl font-semibold mb-4;
+  }
+
+  .connect-prompt p {
+    @apply text-zinc-600 dark:text-zinc-400 mb-6;
+  }
+
+  /* Metrics grid */
+  .metrics-grid {
+    @apply grid grid-cols-1 md:grid-cols-3 gap-4 px-6 py-4;
+  }
+
+  /* AI panels grid */
+  .ai-panels-grid {
+    @apply grid grid-cols-1 lg:grid-cols-2 gap-4 px-6;
+  }
+
+  /* Last synced */
+  .last-synced {
+    @apply text-center text-sm text-zinc-500 dark:text-zinc-400 py-4;
+  }
+
+  /* AI Insights panel */
+  .ai-insights-panel {
+    @apply mx-6 my-4 p-4 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800;
+  }
+
+  .ai-insights-header {
+    @apply flex items-center justify-between mb-4;
+  }
+
+  .ai-insights-header h2 {
+    @apply text-lg font-semibold;
+  }
+
+  .ai-insights-loading {
+    @apply flex flex-col items-center gap-3 py-8;
+  }
+
+  .ai-insights-error {
+    @apply p-4 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 rounded-md;
+  }
+
+  .ai-insights-content {
+    @apply text-sm text-zinc-700 dark:text-zinc-300 max-w-none;
+  }
+
+  .ai-insights-footer {
+    @apply text-xs text-zinc-500 dark:text-zinc-400 mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800;
+  }
+
+  .insights-header {
+    @apply text-base font-semibold mt-4 mb-2;
+  }
+
+  .insights-subheader {
+    @apply text-sm font-medium mt-3 mb-1;
+  }
+
+  .insights-bold {
+    @apply font-semibold;
+  }
+
+  .insights-bullet, .insights-numbered {
+    @apply ml-4 text-sm;
+  }
+
+  .insights-text {
+    @apply text-sm;
+  }
 }

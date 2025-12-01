@@ -20,6 +20,36 @@ def load_yaml_file(filename):
         return yaml.safe_load(f) or {}
 
 
+def is_notion_configured():
+    """Check if Notion credentials are configured."""
+    return bool(os.getenv('NOTION_API_KEY') and os.getenv('NOTION_PIPELINE_DB_ID'))
+
+
+def load_pipeline_from_notion():
+    """
+    Load pipeline data from Notion.
+
+    Returns:
+        dict: Pipeline data or None if failed
+    """
+    if not is_notion_configured():
+        return None
+
+    try:
+        from notion.pipeline import get_pipeline
+        data = get_pipeline()
+        # Transform to match YAML format expected by other functions
+        return {
+            'deals': data.get('deals', []),
+            'pipeline_summary': data.get('pipeline_summary', {}),
+            'source': 'notion',
+            'synced_at': data.get('synced_at'),
+        }
+    except Exception as e:
+        print(f"[Notion] Failed to load pipeline: {e}")
+        return None
+
+
 def load_all_context():
     """
     Load all context YAML files and return combined dictionary.
@@ -27,19 +57,27 @@ def load_all_context():
     Returns:
         dict: Combined context with keys: business, clients, goals, rules, pipeline, risks, metrics
     """
+    # Try Notion for pipeline first, fallback to YAML
+    pipeline = load_pipeline_from_notion()
+    if pipeline is None:
+        pipeline = load_yaml_file('pipeline.yaml')
+
     return {
         'business': load_yaml_file('business_context.yaml'),
         'clients': load_yaml_file('clients.yaml'),
         'goals': load_yaml_file('goals.yaml'),
         'rules': load_yaml_file('rules.yaml'),
-        'pipeline': load_yaml_file('pipeline.yaml'),
+        'pipeline': pipeline,
         'risks': load_yaml_file('risks.yaml'),
         'metrics': load_yaml_file('metrics.yaml'),
     }
 
 
 def load_pipeline():
-    """Load pipeline data."""
+    """Load pipeline data from Notion (preferred) or YAML fallback."""
+    pipeline = load_pipeline_from_notion()
+    if pipeline is not None:
+        return pipeline
     return load_yaml_file('pipeline.yaml')
 
 

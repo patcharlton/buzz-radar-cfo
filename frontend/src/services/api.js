@@ -299,6 +299,41 @@ export const api = {
     });
     return response.json();
   },
+
+  // =============================================================================
+  // NOTION INTEGRATION
+  // =============================================================================
+
+  /**
+   * Get Notion connection status
+   */
+  async getNotionStatus() {
+    const response = await fetch(`${API_BASE}/api/notion/status`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get pipeline data from Notion (uses cache)
+   */
+  async getNotionPipeline() {
+    const response = await fetch(`${API_BASE}/api/notion/pipeline`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Force sync pipeline from Notion (bypasses cache)
+   */
+  async syncNotionPipeline() {
+    const response = await fetch(`${API_BASE}/api/notion/pipeline/sync`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    return response.json();
+  },
 };
 
 export default api;

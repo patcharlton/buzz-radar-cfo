@@ -67,3 +67,6 @@ instance/
 # Secrets
 *.pem
 *.key
+
+# Cache
+backend/cache/
