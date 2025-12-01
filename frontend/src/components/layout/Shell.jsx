@@ -21,6 +21,7 @@ export function Shell({
   onSync,
   onConnect,
   onDisconnect,
+  onLogout,
   syncing
 }) {
   const [darkMode, setDarkMode] = useState(false);
@@ -116,6 +117,19 @@ export function Shell({
                   <Moon className="h-4 w-4" />
                 )}
               </Button>
+
+              {/* Logout button */}
+              {onLogout && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onLogout}
+                  className="gap-2 text-muted-foreground hover:text-red-600"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline">Logout</span>
+                </Button>
+              )}
             </div>
           </div>
         </div>

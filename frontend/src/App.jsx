@@ -13,9 +13,13 @@ import { CashFlowChart } from '@/components/charts/CashFlowChart';
 import CashForecast from '@/components/CashForecast';
 import Anomalies from '@/components/Anomalies';
 import ProjectionWidget from '@/components/ProjectionWidget';
+import { LoginPage } from '@/components/LoginPage';
 import api from '@/services/api';
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('buzzradar_authenticated') === 'true';
+  });
   const [isConnected, setIsConnected] = useState(false);
   const [tenantName, setTenantName] = useState('');
   const [dashboardData, setDashboardData] = useState(null);
@@ -77,8 +81,20 @@ function App() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('buzzradar_authenticated');
+    setIsAuthenticated(false);
+    setIsConnected(false);
+    setDashboardData(null);
+    setTenantName('');
+  };
+
   useEffect(() => {
     const init = async () => {
+      if (!isAuthenticated) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       const connected = await checkConnection();
       if (connected) {
@@ -87,7 +103,12 @@ function App() {
       setLoading(false);
     };
     init();
-  }, [checkConnection, fetchDashboardData]);
+  }, [checkConnection, fetchDashboardData, isAuthenticated]);
+
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={() => setIsAuthenticated(true)} />;
+  }
 
   if (loading) {
     return (
@@ -98,6 +119,7 @@ function App() {
         onSync={() => {}}
         onConnect={() => {}}
         onDisconnect={() => {}}
+        onLogout={handleLogout}
         syncing={false}
       >
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -116,6 +138,7 @@ function App() {
         onSync={handleSync}
         onConnect={handleConnect}
         onDisconnect={handleDisconnect}
+        onLogout={handleLogout}
         syncing={syncing}
       >
         {dashboardData && (
