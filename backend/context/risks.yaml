@@ -46,37 +46,6 @@ risks:
     
     ai_cfo_action: "Track concentration ratio weekly. Alert if any client exceeds 35%."
 
-  # HIGH RISK
-  - id: "RISK-002"
-    name: "Platform Dependency"
-    severity: "High"
-    category: "Operational"
-    
-    description: "Business depends on social platform APIs that have shifted to expensive, restrictive models"
-    
-    exposures:
-      - platform: "X (Twitter)"
-        type: "Enterprise API"
-        cost: 42000
-        frequency: "monthly"
-        currency: "USD"
-        risk: "Further price increases or access restrictions could be materially damaging"
-        
-      - platform: "Reddit"
-        type: "API"
-        cost: 0.24
-        unit: "per 1,000 calls"
-        risk: "Historical analyses can generate unexpected costs"
-    
-    mitigation:
-      - "Track Data Source Dependency Ratio"
-      - "Invest in alternative data sources"
-      - "First-party data collection"
-      - "PubMed integration"
-      - "Owned data crawlers"
-    
-    ai_cfo_action: "Monitor API costs as % of revenue. Alert if X API costs exceed 5% of revenue."
-
   # MEDIUM RISK  
   - id: "RISK-003"
     name: "Productisation Execution"
@@ -136,8 +105,6 @@ monitoring:
     - "Pipeline coverage ratio"
   
   monthly_review:
-    - "Platform API costs vs budget"
-    - "Data source dependency ratio"
     - "Pilot conversion progress"
   
   quarterly_review:
