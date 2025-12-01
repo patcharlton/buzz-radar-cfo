@@ -244,7 +244,7 @@ def get_context_summary():
             'success': True,
             'pipeline_summary': {
                 'total_value': sum(d.get('deal_value', 0) for d in deals),
-                'weighted_value': weighted,
+                'weighted_value': weighted.get('weighted_total', 0),
                 'deal_count': len(deals),
                 'won_value': sum(d.get('deal_value', 0) for d in won_deals),
                 'high_confidence_value': sum(d.get('deal_value', 0) for d in high_confidence),
