@@ -20,9 +20,17 @@ def create_app():
     app.config.from_object(Config)
 
     # Enable CORS for React frontend
-    CORS(app, origins=['http://localhost:5173', 'http://127.0.0.1:5173',
-                       'http://localhost:5174', 'http://127.0.0.1:5174'],
-         supports_credentials=True)
+    CORS(app, origins=[
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:5174',
+        'http://127.0.0.1:5174',
+        'https://buzzradar-cfo-app.onrender.com'
+    ], supports_credentials=True)
+
+    # Configure session cookies for cross-domain
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 
     # Initialize database
     init_db(app)
