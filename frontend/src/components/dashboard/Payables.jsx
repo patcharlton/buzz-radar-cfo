@@ -222,9 +222,26 @@ export function Payables({ data, loading }) {
                             {formatCurrency(recurringCosts.average_monthly_spend)}
                           </span>
                         </div>
-                        <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                          Based on {recurringCosts.total_bills_analyzed} bills from {recurringCosts.unique_vendors} vendors
-                        </p>
+                        <div className="mt-2 space-y-1">
+                          {recurringCosts.other_costs_monthly > 0 && (
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-purple-600 dark:text-purple-400">
+                                Salaries, PAYE & Fixed
+                              </span>
+                              <span className="font-mono text-purple-600 dark:text-purple-400">
+                                {formatCurrency(recurringCosts.other_costs_monthly)}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-purple-600 dark:text-purple-400">
+                              Supplier Invoices
+                            </span>
+                            <span className="font-mono text-purple-600 dark:text-purple-400">
+                              {formatCurrency(recurringCosts.vendor_costs_monthly || 0)}
+                            </span>
+                          </div>
+                        </div>
                       </div>
 
                       {/* 3-Month Predictions */}

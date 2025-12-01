@@ -416,7 +416,10 @@ class XeroClient:
 
     def get_recurring_costs_analysis(self, months=6):
         """
-        Analyze paid bills to identify recurring costs and predict future expenses.
+        Analyze paid bills and P&L to identify recurring costs and predict future expenses.
+
+        Uses P&L data for accurate total expense predictions, combined with paid bills
+        for vendor-level breakdown of trackable supplier costs.
 
         Args:
             months: Number of months to analyze (default: 6)
@@ -430,13 +433,17 @@ class XeroClient:
         bills = self.get_paid_bills(months=months)
         today = date.today()
 
+        # Get actual P&L expenses for accurate monthly totals
+        monthly_expenses = self.get_monthly_expenses(num_months=months)
+        avg_monthly_from_pnl = monthly_expenses.get('average_monthly_expenses', 0)
+
         # Group bills by vendor
         vendor_bills = defaultdict(list)
         for bill in bills:
             vendor_bills[bill['vendor']].append(bill)
 
         recurring_costs = []
-        total_monthly_avg = 0
+        total_vendor_monthly_avg = 0
 
         for vendor, vendor_bill_list in vendor_bills.items():
             # Calculate stats for this vendor
@@ -476,12 +483,16 @@ class XeroClient:
                     'predicted_monthly': round(predicted_monthly, 2),
                     'last_bill_date': max((b['paid_date'] for b in vendor_bill_list if b['paid_date']), default=None),
                 })
-                total_monthly_avg += predicted_monthly
+                total_vendor_monthly_avg += predicted_monthly
 
         # Sort by predicted monthly cost (highest first)
         recurring_costs.sort(key=lambda x: x['predicted_monthly'], reverse=True)
 
-        # Generate next 3 month predictions
+        # Calculate the "other costs" that aren't captured in vendor bills
+        # This includes PAYE, salaries, direct debits, etc.
+        other_costs = max(0, avg_monthly_from_pnl - total_vendor_monthly_avg)
+
+        # Generate next 3 month predictions using P&L-based totals
         predictions = []
         for i in range(3):
             month = today.month + i + 1
@@ -492,8 +503,19 @@ class XeroClient:
 
             month_name = date(year, month, 1).strftime('%B %Y')
 
-            # Predict costs for this month
+            # Predict costs for this month - use P&L average as the base
             month_costs = []
+
+            # Add "Salaries & PAYE" as a synthetic entry for the non-vendor costs
+            if other_costs > 1000:
+                month_costs.append({
+                    'vendor': 'Salaries, PAYE & Other',
+                    'predicted_amount': round(other_costs, 2),
+                    'confidence': 0.95,  # Very predictable
+                    'is_fixed': True,
+                })
+
+            # Add recurring vendor costs
             for cost in recurring_costs:
                 if cost['is_recurring']:
                     # Predict this vendor will bill
@@ -503,13 +525,15 @@ class XeroClient:
                             'vendor': cost['vendor'],
                             'predicted_amount': round(cost['average_amount'], 2),
                             'confidence': round(cost['frequency'] * cost['consistency'], 2),
+                            'is_fixed': False,
                         })
 
+            # Use P&L average for the total prediction (more accurate than summing vendors)
             predictions.append({
                 'month': month_name,
                 'month_key': f"{year}-{month:02d}",
-                'predicted_total': round(sum(c['predicted_amount'] for c in month_costs), 2),
-                'top_costs': month_costs[:5],  # Top 5 expected costs
+                'predicted_total': round(avg_monthly_from_pnl, 2),
+                'top_costs': month_costs[:6],  # Top 6 expected costs (including salaries)
             })
 
         return {
@@ -517,6 +541,9 @@ class XeroClient:
             'total_bills_analyzed': len(bills),
             'unique_vendors': len(vendor_bills),
             'recurring_costs': recurring_costs[:15],  # Top 15 vendors
-            'average_monthly_spend': round(total_monthly_avg, 2),
+            'average_monthly_spend': round(avg_monthly_from_pnl, 2),  # Use P&L figure
+            'vendor_costs_monthly': round(total_vendor_monthly_avg, 2),
+            'other_costs_monthly': round(other_costs, 2),  # PAYE, salaries, etc.
             'predictions': predictions,
+            'pnl_based': True,  # Flag to indicate this uses P&L data
         }
