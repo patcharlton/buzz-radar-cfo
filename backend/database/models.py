@@ -145,3 +145,31 @@ class InvoiceCache(db.Model):
         """Check if the invoice is overdue."""
         days = self.days_until_due()
         return days is not None and days < 0
+
+
+class AICache(db.Model):
+    """Persistent cache for AI-generated responses."""
+
+    __tablename__ = 'ai_cache'
+
+    id = db.Column(db.Integer, primary_key=True)
+    cache_key = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    cache_type = db.Column(db.String(50), nullable=False)  # daily_insights, monthly_analysis, forecast, etc.
+    value = db.Column(db.Text, nullable=False)  # JSON-encoded response
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False)
+
+    def is_expired(self):
+        """Check if the cache entry is expired."""
+        return datetime.utcnow() >= self.expires_at
+
+    def to_dict(self):
+        """Convert to dictionary."""
+        return {
+            'id': self.id,
+            'cache_key': self.cache_key,
+            'cache_type': self.cache_type,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None,
+            'is_expired': self.is_expired(),
+        }

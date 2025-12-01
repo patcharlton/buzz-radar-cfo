@@ -6,14 +6,14 @@ from flask import Blueprint, jsonify, request
 from xero import XeroClient, XeroAuth
 from context import load_all_context
 from ai import ClaudeClient
-from ai.cache import cache_key, get_cached, set_cached, clear_cache, get_cache_stats
+from ai.cache import cache_key, get_cached, set_cached, clear_cache, get_cache_stats, DEFAULT_TTL
 
 ai_bp = Blueprint('ai', __name__)
 xero_client = XeroClient()
 xero_auth = XeroAuth()
 
-# Cache TTL in seconds (1 hour)
-CACHE_TTL = 3600
+# Cache TTL in seconds (uses DEFAULT_TTL from cache module, default 4 hours)
+CACHE_TTL = DEFAULT_TTL
 
 
 def require_xero_connection(f):
@@ -40,7 +40,7 @@ def daily_insights():
     try:
         # Check cache first
         cache_id = cache_key('daily_insights')
-        cached_result = get_cached(cache_id)
+        cached_result = get_cached(cache_id, cache_type='daily_insights')
         if cached_result:
             return jsonify({
                 **cached_result,
@@ -64,8 +64,8 @@ def daily_insights():
             'data_as_of': financial_data.get('last_synced'),
         }
 
-        # Cache the result
-        set_cached(cache_id, result, CACHE_TTL)
+        # Cache the result in Postgres
+        set_cached(cache_id, result, CACHE_TTL, cache_type='daily_insights')
 
         return jsonify({**result, 'cached': False})
 
@@ -91,7 +91,7 @@ def monthly_analysis():
     try:
         # Check cache first
         cache_id = cache_key('monthly_analysis')
-        cached_result = get_cached(cache_id)
+        cached_result = get_cached(cache_id, cache_type='monthly_analysis')
         if cached_result:
             return jsonify({
                 **cached_result,
@@ -114,8 +114,8 @@ def monthly_analysis():
             'generated_at': datetime.utcnow().isoformat(),
         }
 
-        # Cache the result
-        set_cached(cache_id, result, CACHE_TTL)
+        # Cache the result in Postgres
+        set_cached(cache_id, result, CACHE_TTL, cache_type='monthly_analysis')
 
         return jsonify({**result, 'cached': False})
 
@@ -188,8 +188,8 @@ def ask_question():
 def refresh_insights():
     """Sync Xero data and generate fresh insights."""
     try:
-        # Clear all AI caches to force fresh generation
-        clear_cache()
+        # Clear daily insights cache to force fresh generation
+        clear_cache(cache_type='daily_insights')
 
         # Force sync from Xero
         financial_data = get_financial_data()
@@ -209,9 +209,9 @@ def refresh_insights():
             'message': 'Cache cleared, data synced and insights refreshed'
         }
 
-        # Cache the fresh result
+        # Cache the fresh result in Postgres
         cache_id = cache_key('daily_insights')
-        set_cached(cache_id, result, CACHE_TTL)
+        set_cached(cache_id, result, CACHE_TTL, cache_type='daily_insights')
 
         return jsonify({**result, 'cached': False})
 
@@ -236,7 +236,7 @@ def cash_forecast():
     try:
         # Check cache first
         cache_id = cache_key('cash_forecast')
-        cached_result = get_cached(cache_id)
+        cached_result = get_cached(cache_id, cache_type='forecast')
         if cached_result:
             return jsonify({
                 **cached_result,
@@ -260,8 +260,8 @@ def cash_forecast():
             'data_as_of': financial_data.get('last_synced'),
         }
 
-        # Cache the result
-        set_cached(cache_id, result, CACHE_TTL)
+        # Cache the result in Postgres
+        set_cached(cache_id, result, CACHE_TTL, cache_type='forecast')
 
         return jsonify({**result, 'cached': False})
 
@@ -286,7 +286,7 @@ def detect_anomalies():
     try:
         # Check cache first
         cache_id = cache_key('anomalies')
-        cached_result = get_cached(cache_id)
+        cached_result = get_cached(cache_id, cache_type='anomalies')
         if cached_result:
             return jsonify({
                 **cached_result,
@@ -310,8 +310,8 @@ def detect_anomalies():
             'data_as_of': financial_data.get('last_synced'),
         }
 
-        # Cache the result
-        set_cached(cache_id, result, CACHE_TTL)
+        # Cache the result in Postgres
+        set_cached(cache_id, result, CACHE_TTL, cache_type='anomalies')
 
         return jsonify({**result, 'cached': False})
 
