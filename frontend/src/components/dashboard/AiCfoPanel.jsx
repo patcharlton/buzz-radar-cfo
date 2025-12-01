@@ -31,6 +31,50 @@ const SUGGESTED_QUESTIONS = [
   { text: "What's our biggest risk?", icon: AlertTriangle },
 ];
 
+// Helper to get icon and color based on content keywords
+function getSectionStyle(text) {
+  const upper = text.toUpperCase();
+  if (upper.includes('CRITICAL') || upper.includes('IMMEDIATE') || upper.includes('URGENT') || upper.includes('ALERT')) {
+    return { icon: AlertTriangle, color: 'red', bgColor: 'bg-red-50 dark:bg-red-950/30', borderColor: 'border-red-200 dark:border-red-900', textColor: 'text-red-700 dark:text-red-300', iconColor: 'text-red-500' };
+  }
+  if (upper.includes('CASH') || upper.includes('REVENUE') || upper.includes('PAYMENT') || upper.includes('INCOME') || upper.includes('PROFIT')) {
+    return { icon: DollarSign, color: 'emerald', bgColor: 'bg-emerald-50 dark:bg-emerald-950/30', borderColor: 'border-emerald-200 dark:border-emerald-900', textColor: 'text-emerald-700 dark:text-emerald-300', iconColor: 'text-emerald-500' };
+  }
+  if (upper.includes('RISK') || upper.includes('WARNING') || upper.includes('CONCERN') || upper.includes('ISSUE')) {
+    return { icon: AlertTriangle, color: 'amber', bgColor: 'bg-amber-50 dark:bg-amber-950/30', borderColor: 'border-amber-200 dark:border-amber-900', textColor: 'text-amber-700 dark:text-amber-300', iconColor: 'text-amber-500' };
+  }
+  if (upper.includes('GROWTH') || upper.includes('OPPORTUNITY') || upper.includes('POSITIVE') || upper.includes('SUCCESS')) {
+    return { icon: TrendingUp, color: 'emerald', bgColor: 'bg-emerald-50 dark:bg-emerald-950/30', borderColor: 'border-emerald-200 dark:border-emerald-900', textColor: 'text-emerald-700 dark:text-emerald-300', iconColor: 'text-emerald-500' };
+  }
+  if (upper.includes('TRANSITION') || upper.includes('PLATFORM') || upper.includes('STRATEGY') || upper.includes('GOAL')) {
+    return { icon: Target, color: 'indigo', bgColor: 'bg-indigo-50 dark:bg-indigo-950/30', borderColor: 'border-indigo-200 dark:border-indigo-900', textColor: 'text-indigo-700 dark:text-indigo-300', iconColor: 'text-indigo-500' };
+  }
+  if (upper.includes('CLIENT') || upper.includes('CUSTOMER') || upper.includes('ACCOUNT')) {
+    return { icon: Users, color: 'blue', bgColor: 'bg-blue-50 dark:bg-blue-950/30', borderColor: 'border-blue-200 dark:border-blue-900', textColor: 'text-blue-700 dark:text-blue-300', iconColor: 'text-blue-500' };
+  }
+  if (upper.includes('INVOICE') || upper.includes('BILL') || upper.includes('DOCUMENT')) {
+    return { icon: FileText, color: 'violet', bgColor: 'bg-violet-50 dark:bg-violet-950/30', borderColor: 'border-violet-200 dark:border-violet-900', textColor: 'text-violet-700 dark:text-violet-300', iconColor: 'text-violet-500' };
+  }
+  return { icon: Info, color: 'zinc', bgColor: 'bg-zinc-50 dark:bg-zinc-800/50', borderColor: 'border-zinc-200 dark:border-zinc-700', textColor: 'text-zinc-700 dark:text-zinc-300', iconColor: 'text-zinc-500' };
+}
+
+// Parse inline formatting (bold, code, etc.)
+function parseInlineFormatting(text) {
+  if (!text) return null;
+
+  // Split by bold markers and code backticks
+  const parts = text.split(/(\*\*.*?\*\*|`.*?`)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return <code key={i} className="px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-sm font-mono text-purple-600 dark:text-purple-400">{part.slice(1, -1)}</code>;
+    }
+    return part;
+  });
+}
+
 function formatMarkdown(text) {
   if (!text) return null;
 
@@ -38,151 +82,134 @@ function formatMarkdown(text) {
   const elements = [];
   let listItems = [];
   let inList = false;
-  let currentListType = null;
+  let sectionIndex = 0;
+
+  const flushList = (index) => {
+    if (listItems.length > 0) {
+      elements.push(
+        <ul key={`list-${index}`} className="space-y-2 mb-5">
+          {listItems}
+        </ul>
+      );
+      listItems = [];
+    }
+    inList = false;
+  };
 
   lines.forEach((line, index) => {
     const trimmedLine = line.trim();
 
-    // Headers
+    // H1 Headers - Major sections with card styling
     if (trimmedLine.startsWith('# ')) {
-      if (inList && listItems.length > 0) {
-        elements.push(
-          <ul key={`list-${index}`} className="list-disc pl-5 mb-3 space-y-1">
-            {listItems}
-          </ul>
-        );
-        listItems = [];
-        inList = false;
-      }
+      flushList(index);
+      const headerText = trimmedLine.slice(2);
+      const style = getSectionStyle(headerText);
+      const Icon = style.icon;
+      sectionIndex++;
+
       elements.push(
-        <h2 key={index} className="text-lg font-bold text-foreground mt-4 mb-2">
-          {trimmedLine.slice(2)}
-        </h2>
+        <div key={index} className={`rounded-lg border ${style.borderColor} ${style.bgColor} p-4 mb-5 mt-6 first:mt-0`}>
+          <h2 className={`text-base font-bold ${style.textColor} flex items-center gap-2`}>
+            <Icon className={`h-5 w-5 ${style.iconColor}`} />
+            {headerText}
+          </h2>
+        </div>
       );
       return;
     }
 
+    // H2 Headers - Sub-sections with left border accent
     if (trimmedLine.startsWith('## ')) {
-      if (inList && listItems.length > 0) {
-        elements.push(
-          <ul key={`list-${index}`} className="list-disc pl-5 mb-3 space-y-1">
-            {listItems}
-          </ul>
-        );
-        listItems = [];
-        inList = false;
-      }
+      flushList(index);
+      const headerText = trimmedLine.slice(3);
+      const style = getSectionStyle(headerText);
+      const Icon = style.icon;
+
       elements.push(
-        <h3 key={index} className="text-base font-semibold text-foreground mt-3 mb-2 flex items-center gap-2">
-          {trimmedLine.includes('CRITICAL') || trimmedLine.includes('IMMEDIATE') ? (
-            <AlertTriangle className="h-4 w-4 text-red-500" />
-          ) : trimmedLine.includes('CASH') || trimmedLine.includes('REVENUE') ? (
-            <DollarSign className="h-4 w-4 text-emerald-500" />
-          ) : trimmedLine.includes('RISK') ? (
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-          ) : trimmedLine.includes('TRANSITION') || trimmedLine.includes('PLATFORM') ? (
-            <Target className="h-4 w-4 text-indigo-500" />
-          ) : (
-            <Info className="h-4 w-4 text-blue-500" />
-          )}
-          {trimmedLine.slice(3)}
-        </h3>
+        <div key={index} className={`border-l-4 ${style.borderColor} pl-4 py-2 mb-4 mt-5`}>
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+            <Icon className={`h-4 w-4 ${style.iconColor}`} />
+            {headerText}
+          </h3>
+        </div>
       );
       return;
     }
 
+    // H3 Headers - Minor sections
     if (trimmedLine.startsWith('### ')) {
-      if (inList && listItems.length > 0) {
-        elements.push(
-          <ul key={`list-${index}`} className="list-disc pl-5 mb-3 space-y-1">
-            {listItems}
-          </ul>
-        );
-        listItems = [];
-        inList = false;
-      }
+      flushList(index);
+      const headerText = trimmedLine.slice(4);
+
       elements.push(
-        <h4 key={index} className="text-sm font-semibold text-foreground mt-2 mb-1">
-          {trimmedLine.slice(4)}
+        <h4 key={index} className="text-sm font-semibold text-foreground mt-4 mb-2 flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+          {headerText}
         </h4>
       );
       return;
     }
 
-    // List items
+    // List items - enhanced with better styling
     if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ') || /^\d+\.\s/.test(trimmedLine)) {
       inList = true;
+      const isNumbered = /^\d+\.\s/.test(trimmedLine);
       const content = trimmedLine.replace(/^[-*]\s*/, '').replace(/^\d+\.\s*/, '');
-
-      // Parse bold text
-      const parts = content.split(/(\*\*.*?\*\*)/g);
-      const formattedContent = parts.map((part, i) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>;
-        }
-        return part;
-      });
+      const formattedContent = parseInlineFormatting(content);
 
       listItems.push(
-        <li key={index} className="text-sm text-foreground">
-          {formattedContent}
+        <li key={index} className="flex items-start gap-3 text-sm text-muted-foreground leading-relaxed">
+          <span className="flex-shrink-0 mt-1.5">
+            {isNumbered ? (
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-xs font-medium">
+                {trimmedLine.match(/^\d+/)?.[0]}
+              </span>
+            ) : (
+              <span className="block w-1.5 h-1.5 rounded-full bg-purple-400 dark:bg-purple-500" />
+            )}
+          </span>
+          <span className="flex-1">{formattedContent}</span>
         </li>
       );
       return;
     }
 
     // Flush list if we hit a non-list line
-    if (inList && listItems.length > 0) {
-      elements.push(
-        <ul key={`list-${index}`} className="list-disc pl-5 mb-3 space-y-1">
-          {listItems}
-        </ul>
-      );
-      listItems = [];
-      inList = false;
+    if (inList) {
+      flushList(index);
     }
 
-    // Empty lines
+    // Empty lines - add spacing
     if (trimmedLine === '') {
       return;
     }
 
-    // Bold paragraphs
+    // Bold paragraphs - callout style
     if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**')) {
+      const innerText = trimmedLine.slice(2, -2);
+      const style = getSectionStyle(innerText);
+
       elements.push(
-        <p key={index} className="text-sm font-semibold text-foreground mb-2">
-          {trimmedLine.slice(2, -2)}
+        <p key={index} className={`text-sm font-semibold ${style.textColor} mb-3 py-2 px-3 rounded-md ${style.bgColor} border ${style.borderColor}`}>
+          {innerText}
         </p>
       );
       return;
     }
 
-    // Regular text with inline bold
-    const parts = trimmedLine.split(/(\*\*.*?\*\*)/g);
-    const formattedContent = parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>;
-      }
-      return part;
-    });
-
+    // Regular paragraphs
+    const formattedContent = parseInlineFormatting(trimmedLine);
     elements.push(
-      <p key={index} className="text-sm text-foreground mb-2 leading-relaxed">
+      <p key={index} className="text-sm text-muted-foreground mb-3 leading-relaxed">
         {formattedContent}
       </p>
     );
   });
 
   // Flush remaining list items
-  if (listItems.length > 0) {
-    elements.push(
-      <ul key="list-final" className="list-disc pl-5 mb-3 space-y-1">
-        {listItems}
-      </ul>
-    );
-  }
+  flushList('final');
 
-  return elements;
+  return <div className="space-y-1">{elements}</div>;
 }
 
 export function AiCfoPanel() {
@@ -364,31 +391,34 @@ export function AiCfoPanel() {
 
           {/* Daily Insights */}
           {insights && (
-            <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
-              <div className="flex items-center justify-between mb-3">
+            <div className="p-5 border-b border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-emerald-500" />
+                  <div className="p-1.5 rounded-md bg-emerald-100 dark:bg-emerald-900/30">
+                    <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  </div>
                   Daily Insights
                 </h3>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowFullInsights(!showFullInsights)}
-                  className="text-xs"
+                  className="text-xs gap-1"
                 >
                   {showFullInsights ? 'Show Less' : 'Show Full Report'}
                   {showFullInsights ? (
-                    <ChevronUp className="h-3 w-3 ml-1" />
+                    <ChevronUp className="h-3 w-3" />
                   ) : (
-                    <ChevronDown className="h-3 w-3 ml-1" />
+                    <ChevronDown className="h-3 w-3" />
                   )}
                 </Button>
               </div>
-              <div className={`prose prose-sm dark:prose-invert max-w-none ${showFullInsights ? '' : 'max-h-64 overflow-y-auto'}`}>
+              <div className={`max-w-none ${showFullInsights ? '' : 'max-h-80 overflow-y-auto pr-2'}`}>
                 {formatMarkdown(insights)}
               </div>
               {generatedAt && (
-                <p className="text-xs text-muted-foreground mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                <p className="text-xs text-muted-foreground mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-1.5">
+                  <Clock className="h-3 w-3" />
                   Generated: {new Date(generatedAt).toLocaleString()}
                 </p>
               )}
@@ -396,9 +426,11 @@ export function AiCfoPanel() {
           )}
 
           {/* Ask Question Section */}
-          <div className="p-4 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/20">
-            <div className="flex items-center gap-2 mb-3">
-              <MessageCircle className="h-4 w-4 text-indigo-500" />
+          <div className="p-5 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/20">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-1.5 rounded-md bg-indigo-100 dark:bg-indigo-900/30">
+                <MessageCircle className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+              </div>
               <span className="text-sm font-semibold">Ask Your AI CFO</span>
             </div>
 
@@ -490,19 +522,17 @@ export function AiCfoPanel() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="mt-4 p-4 bg-white dark:bg-zinc-900 rounded-lg border border-indigo-100 dark:border-indigo-900/50"
+                  className="mt-5"
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg shadow-sm flex-shrink-0">
+                  <div className="bg-white dark:bg-zinc-900 rounded-xl border border-indigo-200 dark:border-indigo-900/50 overflow-hidden shadow-sm">
+                    {/* Header */}
+                    <div className="px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-white" />
+                      <span className="text-sm font-medium text-white">AI CFO Response</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-2">
-                        AI CFO Response
-                      </h4>
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        {formatMarkdown(answer)}
-                      </div>
+                    {/* Content */}
+                    <div className="p-5">
+                      {formatMarkdown(answer)}
                     </div>
                   </div>
                 </motion.div>
