@@ -6,10 +6,14 @@ from flask import Blueprint, jsonify, request
 from xero import XeroClient, XeroAuth
 from context import load_all_context
 from ai import ClaudeClient
+from ai.cache import cache_key, get_cached, set_cached, clear_cache, get_cache_stats
 
 ai_bp = Blueprint('ai', __name__)
 xero_client = XeroClient()
 xero_auth = XeroAuth()
+
+# Cache TTL in seconds (1 hour)
+CACHE_TTL = 3600
 
 
 def require_xero_connection(f):
@@ -34,6 +38,15 @@ def get_financial_data():
 def daily_insights():
     """Generate AI-powered daily financial insights."""
     try:
+        # Check cache first
+        cache_id = cache_key('daily_insights')
+        cached_result = get_cached(cache_id)
+        if cached_result:
+            return jsonify({
+                **cached_result,
+                'cached': True
+            })
+
         # Get financial data from Xero
         financial_data = get_financial_data()
 
@@ -44,12 +57,17 @@ def daily_insights():
         claude = ClaudeClient()
         insights = claude.daily_insights(financial_data, context)
 
-        return jsonify({
+        result = {
             'success': True,
             'insights': insights,
             'generated_at': datetime.utcnow().isoformat(),
             'data_as_of': financial_data.get('last_synced'),
-        })
+        }
+
+        # Cache the result
+        set_cached(cache_id, result, CACHE_TTL)
+
+        return jsonify({**result, 'cached': False})
 
     except ValueError as e:
         # Missing API key
@@ -71,6 +89,15 @@ def daily_insights():
 def monthly_analysis():
     """Generate AI-powered monthly strategic analysis."""
     try:
+        # Check cache first
+        cache_id = cache_key('monthly_analysis')
+        cached_result = get_cached(cache_id)
+        if cached_result:
+            return jsonify({
+                **cached_result,
+                'cached': True
+            })
+
         # Get financial data from Xero
         financial_data = get_financial_data()
 
@@ -81,11 +108,16 @@ def monthly_analysis():
         claude = ClaudeClient()
         analysis = claude.monthly_analysis(financial_data, context)
 
-        return jsonify({
+        result = {
             'success': True,
             'analysis': analysis,
             'generated_at': datetime.utcnow().isoformat(),
-        })
+        }
+
+        # Cache the result
+        set_cached(cache_id, result, CACHE_TTL)
+
+        return jsonify({**result, 'cached': False})
 
     except ValueError as e:
         return jsonify({
@@ -156,6 +188,9 @@ def ask_question():
 def refresh_insights():
     """Sync Xero data and generate fresh insights."""
     try:
+        # Clear all AI caches to force fresh generation
+        clear_cache()
+
         # Force sync from Xero
         financial_data = get_financial_data()
 
@@ -166,13 +201,19 @@ def refresh_insights():
         claude = ClaudeClient()
         insights = claude.daily_insights(financial_data, context)
 
-        return jsonify({
+        result = {
             'success': True,
             'insights': insights,
             'generated_at': datetime.utcnow().isoformat(),
             'data_as_of': financial_data.get('last_synced'),
-            'message': 'Data synced and insights refreshed'
-        })
+            'message': 'Cache cleared, data synced and insights refreshed'
+        }
+
+        # Cache the fresh result
+        cache_id = cache_key('daily_insights')
+        set_cached(cache_id, result, CACHE_TTL)
+
+        return jsonify({**result, 'cached': False})
 
     except ValueError as e:
         return jsonify({
@@ -186,3 +227,113 @@ def refresh_insights():
             'success': False,
             'error': str(e)
         }), 500
+
+
+@ai_bp.route('/api/ai/forecast')
+@require_xero_connection
+def cash_forecast():
+    """Generate 4-week cash flow forecast."""
+    try:
+        # Check cache first
+        cache_id = cache_key('cash_forecast')
+        cached_result = get_cached(cache_id)
+        if cached_result:
+            return jsonify({
+                **cached_result,
+                'cached': True
+            })
+
+        # Get financial data from Xero
+        financial_data = get_financial_data()
+
+        # Load business context
+        context = load_all_context()
+
+        # Generate forecast using Claude
+        claude = ClaudeClient()
+        forecast = claude.cash_forecast(financial_data, context)
+
+        result = {
+            'success': True,
+            'forecast': forecast,
+            'generated_at': datetime.utcnow().isoformat(),
+            'data_as_of': financial_data.get('last_synced'),
+        }
+
+        # Cache the result
+        set_cached(cache_id, result, CACHE_TTL)
+
+        return jsonify({**result, 'cached': False})
+
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'hint': 'Ensure ANTHROPIC_API_KEY is set in .env'
+        }), 500
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@ai_bp.route('/api/ai/anomalies')
+@require_xero_connection
+def detect_anomalies():
+    """Detect financial anomalies and risks."""
+    try:
+        # Check cache first
+        cache_id = cache_key('anomalies')
+        cached_result = get_cached(cache_id)
+        if cached_result:
+            return jsonify({
+                **cached_result,
+                'cached': True
+            })
+
+        # Get financial data from Xero
+        financial_data = get_financial_data()
+
+        # Load business context
+        context = load_all_context()
+
+        # Detect anomalies using Claude
+        claude = ClaudeClient()
+        anomalies = claude.detect_anomalies(financial_data, context)
+
+        result = {
+            'success': True,
+            'anomalies': anomalies,
+            'generated_at': datetime.utcnow().isoformat(),
+            'data_as_of': financial_data.get('last_synced'),
+        }
+
+        # Cache the result
+        set_cached(cache_id, result, CACHE_TTL)
+
+        return jsonify({**result, 'cached': False})
+
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'hint': 'Ensure ANTHROPIC_API_KEY is set in .env'
+        }), 500
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@ai_bp.route('/api/ai/cache-stats')
+def cache_stats():
+    """Get cache statistics."""
+    stats = get_cache_stats()
+    return jsonify({
+        'success': True,
+        'stats': stats
+    })

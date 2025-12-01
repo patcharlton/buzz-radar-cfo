@@ -1,15 +1,20 @@
 """Claude API client for AI CFO analysis."""
 
 import os
+import json
 from anthropic import Anthropic
 
 from .prompts import (
     DAILY_INSIGHTS_SYSTEM,
     MONTHLY_ANALYSIS_SYSTEM,
     QA_SYSTEM,
+    CASH_FORECAST_SYSTEM,
+    ANOMALY_DETECTION_SYSTEM,
     build_daily_prompt,
     build_monthly_prompt,
     build_qa_prompt,
+    build_forecast_prompt,
+    build_anomaly_prompt,
 )
 
 
@@ -61,6 +66,40 @@ class ClaudeClient:
         except Exception as e:
             raise Exception(f"Claude API error: {str(e)}")
 
+    def analyse_json(self, system_prompt, user_prompt, max_tokens=None):
+        """
+        Send a prompt to Claude and get a JSON response.
+
+        Args:
+            system_prompt: The system prompt setting context
+            user_prompt: The user message with specific request
+            max_tokens: Maximum tokens in response
+
+        Returns:
+            dict: Parsed JSON response
+        """
+        response_text = self.analyse(system_prompt, user_prompt, max_tokens)
+
+        # Try to extract JSON from the response
+        try:
+            # First try direct parse
+            return json.loads(response_text)
+        except json.JSONDecodeError:
+            # Try to find JSON in the response
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', response_text)
+            if json_match:
+                try:
+                    return json.loads(json_match.group())
+                except json.JSONDecodeError:
+                    pass
+
+            # Return error structure if JSON parsing fails
+            return {
+                'error': 'Failed to parse JSON response',
+                'raw_response': response_text
+            }
+
     def daily_insights(self, financial_data, context):
         """
         Generate daily financial insights.
@@ -103,3 +142,31 @@ class ClaudeClient:
         """
         user_prompt = build_qa_prompt(question, financial_data, context)
         return self.analyse(QA_SYSTEM, user_prompt)
+
+    def cash_forecast(self, financial_data, context):
+        """
+        Generate 4-week cash flow forecast.
+
+        Args:
+            financial_data: Dict with cash_position, receivables, payables
+            context: Dict with business context including pipeline
+
+        Returns:
+            dict: Structured forecast with weekly projections
+        """
+        user_prompt = build_forecast_prompt(financial_data, context)
+        return self.analyse_json(CASH_FORECAST_SYSTEM, user_prompt, max_tokens=2500)
+
+    def detect_anomalies(self, financial_data, context):
+        """
+        Detect financial anomalies and risks.
+
+        Args:
+            financial_data: Dict with financial data
+            context: Dict with business context
+
+        Returns:
+            dict: Structured anomaly report
+        """
+        user_prompt = build_anomaly_prompt(financial_data, context)
+        return self.analyse_json(ANOMALY_DETECTION_SYSTEM, user_prompt, max_tokens=2500)

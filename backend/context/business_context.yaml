@@ -1,58 +1,195 @@
-# Business Context for Buzz Radar Limited
-# This file contains core company information used by the AI CFO
+# Buzz Radar Limited - Strategic Business Context
+# Source: AI CFO Knowledge Base (November 2025)
+# For AI CFO system contextual understanding
 
 company:
   name: "Buzz Radar Limited"
-  legal_entity: "UK Limited Company"
-  industry: "Pharmaceutical Marketing Intelligence / SaaS"
-  founded: 2015
-  location: "United Kingdom"
-  currency: "GBP"
+  registered: "UK"
+  founded: 2012
+  classification: "Bootstrapped, profitable, no external capital"
 
-# Core product/service offering
-product:
-  name: "BRIANN"
-  description: "AI-powered platform for pharmaceutical marketing compliance and intelligence"
-  type: "B2B SaaS"
-  target_market: "Pharmaceutical and healthcare companies"
+# CRITICAL CONTEXT: Business Model Transition
+business_model:
+  current_state: "100% services-led"
+  description: "Plug-in insights department - deeply integrated with pharma marketing organisations"
+  future_state: "Platform-led with human validation layer"
+  
+  transition_timeline:
+    end_2026: "75% platform, 25% services"
+    mid_2027: "90%+ platform revenue"
+  
+  why_transition:
+    - "Services scales linearly with headcount"
+    - "Platform scales exponentially"
+    - "SaaS valuations: 8-10x revenue"
+    - "Services valuations: 3-6x EBITDA"
 
-# Revenue model
-revenue_model:
-  type: "Subscription + Project-based"
-  annual_revenue: 1300000  # £1.3M
-  profitable: true
-  # Typical contract structure
-  contract_types:
-    - name: "Digital Listening Program"
-      typical_value: 500000  # £500k+
-      duration_months: 12
-    - name: "Compliance Monitoring"
-      typical_value: 150000
-      duration_months: 12
-    - name: "Ad-hoc Projects"
-      typical_value: 50000
-      duration_months: 3
+# Current Financial Position (2025)
+financials:
+  annual_revenue: 1300000
+  gross_margin: 94  # Percent - exceptional for services
+  net_margin: 11  # Percent
+  net_profit: 148000
+  yoy_growth: 109  # More than doubled from £622k in 2024
+  prior_year_revenue: 622000
+  cash_position: "Positive - self-funding"
+  external_capital: "None required"
 
-# Team structure (for burn rate context)
-team:
-  headcount: 12
-  monthly_payroll: 65000  # Approximate
-  contractors: 2
+# Services Business Model
+services_model:
+  description: "Outsourced intelligence function embedded within client organisations"
+  characteristics:
+    - "High client intimacy"
+    - "Strong retention"
+    - "Labour-intensive"
+    - "Scales linearly with headcount"
+  
+  offerings:
+    - name: "Digital Listening Programs"
+      description: "Ongoing monitoring and analysis of social conversations around brands, diseases, competitors"
+    - name: "Digital Opinion Leader (DOL) Tracking"
+      description: "Identification and analysis of HCPs with digital influence"
+    - name: "Competitive Intelligence"
+      description: "Monitoring competitor activities, launches, messaging strategies"
+    - name: "Content Performance Analysis"
+      description: "Evaluating what content resonates with target audiences"
+    - name: "Strategic Reporting"
+      description: "Regular insight delivery to marketing and medical affairs teams"
 
-# Key costs
-operating_costs:
-  monthly_overhead: 25000  # Office, software, infrastructure
-  cloud_hosting: 8000
-  marketing: 5000
+# BRIANN Product
+briann:
+  full_name: "Buzz Radar Insight Analyst Neural Network"
+  origin: "Internal competitive advantage - made services team dramatically more efficient"
+  status: "Transitioning from internal tool to productised platform"
+  
+  internal_capabilities:
+    - capability: "Insight Generation"
+      description: "Rapidly analyse millions of healthcare conversations for trends and patterns"
+    - capability: "DOL Identification"
+      description: "AI-powered mapping of digital opinion leaders by therapeutic area and geography"
+    - capability: "Pre-Compliance Checking"
+      description: "Screen content against ABPI, EFPIA, PAAB, MHRA, PhRMA codes"
+    - capability: "Content Strategy"
+      description: "Analyse what content performs and why, with AI recommendations"
+    - capability: "Speed Multiplier"
+      description: "90% faster insight delivery than traditional methods"
+  
+  modules:
+    - name: "Insights Analyst"
+      function: "Explains trends, spikes, patterns in social conversations"
+    - name: "Influencer Mapper"
+      function: "Identifies and ranks DOLs for therapeutic areas and geographies"
+    - name: "Compliance Engine"
+      function: "Pre-screens content with traffic-light recommendations"
+    - name: "Data-Driven Strategist"
+      function: "Analyses content performance with recommendations"
+    - name: "Pharmacovigilance Monitor"
+      function: "Scans for ADR mentions across social media"
+      status: "In development"
+  
+  architecture:
+    model: "Human-in-Loop"
+    principle: "AI does heavy lifting; humans provide validation for compliance-sensitive outputs"
+    why_matters: "Pure automation unacceptable in pharma due to regulatory and legal liability"
+    
+    deployment_options:
+      - type: "Cloud SaaS"
+        for: "Smaller pharma comfortable with cloud"
+      - type: "Client-Side Deployment"
+        for: "Security-sensitive enterprises using their own LLM infrastructure"
+        examples: ["Azure OpenAI", "AWS Bedrock", "Private models"]
+      - type: "Model Neutrality"
+        description: "Orchestrates multiple LLMs (GPT-4, Claude, Gemini)"
+    
+    competitive_advantage: "Most pharma IT blocks ChatGPT/Claude. BRIANN operates within client firewalls using their model instances - solves access problem, not just capability problem"
 
-# Strategic context
-strategy:
-  exit_goal: "Trade sale or acquisition"
-  target_valuation_min: 35000000  # £35M
-  target_valuation_max: 50000000  # £50M
+# First Product Pilot
+ferring_pilot:
+  client: "Ferring Pharmaceuticals"
+  status: "First external BRIANN deployment"
+  start_date: "December 2025"
+  duration: "90-day evaluation"
+  pricing: 30000
+  pricing_rationale: "Minimise procurement friction"
+  conversion_target: "£100-250K production contract"
+  success_criteria: "To be defined within first 14 days"
+  strategic_significance: "Validates BRIANN can be sold as product, not just embedded in services. Proves land-and-expand model works."
+
+# 2026 Pilot Pipeline
+pilot_pipeline_2026:
+  standardised_price: 30000
+  prospects:
+    - company: "GSK"
+      therapeutic_focus: "Various"
+    - company: "Merck"
+      therapeutic_focus: "Various"
+    - company: "UCB"
+      therapeutic_focus: "Various"
+    - company: "Chugai"
+      therapeutic_focus: "Various"
+    - company: "CSL"
+      therapeutic_focus: "Various"
+    - company: "BioMarin"
+      therapeutic_focus: "Various"
+  
+  economics:
+    pilot_margin: "Potentially negative - treat as CAC"
+    production_margin_target: "70-85%"
+    conversion_target: "60-70%"
+
+# Cost Structure
+cost_structure:
+  current_model: "Services - 94% gross margin"
+  
+  platform_costs:
+    data_apis:
+      x_twitter_enterprise:
+        cost: 42000
+        frequency: "monthly"
+        currency: "USD"
+        notes: "Material fixed cost - ~$504k annually"
+      reddit:
+        cost: 0.24
+        unit: "per 1,000 calls"
+        notes: "Historical analyses can generate unexpected costs"
+    
+    llm_inference:
+      type: "Variable - scales with usage"
+      note: "Monitor discriminative vs generative ratio - discriminative is cheaper"
+    
+    human_validation:
+      type: "Labour cost"
+      note: "Must be systematised and made efficient, NOT eliminated - it's a differentiator"
+  
+  key_metrics_to_track:
+    - "Token Consumption Rate"
+    - "API Efficiency Ratio (revenue per £1 API spend)"
+    - "Cost per Insight"
+    - "Data Source Dependency Ratio"
+
+# Exit Thesis
+exit_strategy:
   target_year: 2030
-  key_value_drivers:
-    - "Recurring revenue growth"
-    - "Client retention in pharma sector"
-    - "AI/ML technology differentiation"
-    - "Regulatory compliance expertise"
+  valuation_target:
+    low: 35000000
+    high: 50000000
+  
+  requirements:
+    revenue: "£3.5-4.5M by 2029"
+    revenue_mix: "90%+ platform by 2027"
+    client_base: "15-20 active clients"
+    concentration: "No single client >30%"
+    profitability: "Maintain 10-15% net margin throughout transition"
+
+# Strategic Milestones
+milestones:
+  q1_2026:
+    - "Ferring pilot completion"
+    - "Conversion decision"
+  q2_2026:
+    - "3-4 additional BRIANN pilots activated"
+  q3_2026:
+    - "First production BRIANN contracts signed"
+  q4_2026:
+    - "Revenue mix: 25%+ platform, 75% services"
+    - "Transition underway"

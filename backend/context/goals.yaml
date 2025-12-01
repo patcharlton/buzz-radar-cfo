@@ -1,69 +1,198 @@
-# Financial and Strategic Goals for Buzz Radar Limited
-# Used by AI CFO to contextualise recommendations
+# Buzz Radar Strategic Goals
+# Source: AI CFO Knowledge Base (November 2025)
 
+# Exit Thesis - Primary Strategic Driver
+exit_thesis:
+  target_year: 2030
+  valuation:
+    low: 35000000
+    high: 50000000
+  
+  requirements:
+    revenue_2029: 4000000  # £3.5-4.5M
+    revenue_mix_2027: 90  # % platform
+    client_count: 18  # 15-20 active
+    max_concentration: 30  # % single client
+    net_margin: 12  # 10-15% throughout transition
+
+# Financial Goals
 financial_goals:
-  # Short-term (this year)
-  current_year:
-    revenue_target: 1500000  # £1.5M
-    profit_margin_target: 20  # 20%
-    cash_reserve_target: 300000  # 3 months operating costs
-    receivables_days_target: 45  # DSO target
 
-  # Medium-term (2-3 years)
-  medium_term:
-    revenue_target: 3000000  # £3M by 2027
-    new_clients_target: 5  # Net new enterprise clients per year
-    retention_rate_target: 90  # %
+  short_term:  # 2025-2026
+    - metric: "Annual Revenue"
+      current: 1300000
+      target: 1800000  # End 2026
+      priority: "High"
+    
+    - metric: "Net Margin"
+      current: 11
+      target: 12
+      minimum: 10
+      unit: "percent"
+      priority: "High"
+      notes: "Maintain profitability through transition"
+    
+    - metric: "Gross Margin"
+      current: 94
+      target: 85  # Will decrease as platform scales
+      minimum: 70
+      unit: "percent"
+      priority: "Medium"
+    
+    - metric: "Platform Revenue"
+      current: 0
+      target: 450000  # 25% of £1.8M
+      unit: "GBP"
+      priority: "Critical"
+      notes: "First platform revenue is strategic milestone"
 
-  # Long-term (exit)
-  exit_planning:
-    target_year: 2030
-    valuation_target_min: 35000000
-    valuation_target_max: 50000000
-    revenue_multiple_assumption: 8  # Expected valuation multiple
-    ebitda_multiple_assumption: 15
+  medium_term:  # 2027-2028
+    - metric: "Annual Revenue"
+      target: 3000000
+      priority: "High"
+    
+    - metric: "Platform Revenue Mix"
+      target: 90
+      unit: "percent"
+      priority: "Critical"
+    
+    - metric: "Client Count"
+      target: 12
+      min_at_100k: 8  # 8 clients at £100k+
+      priority: "High"
+    
+    - metric: "Client Concentration"
+      target: 25  # No client >25%
+      unit: "percent max single client"
+      priority: "High"
 
-strategic_goals:
-  this_quarter:
-    - goal: "Secure ViiV renewal"
-      priority: "critical"
-      owner: "Patrick"
-      deadline: "2024-12-31"
-      notes: "£650k at stake. Need executive engagement."
+  long_term:  # 2029-2030
+    - metric: "Annual Revenue"
+      target: 4000000
+      priority: "Strategic"
+    
+    - metric: "Company Valuation"
+      target_low: 35000000
+      target_high: 50000000
+      priority: "Strategic"
+    
+    - metric: "Client Base"
+      target: 18  # 15-20
+      priority: "High"
 
-    - goal: "Close Bayer deal"
-      priority: "high"
-      owner: "Sales"
-      deadline: "2025-01-31"
-      notes: "Would offset ViiV risk"
+# Operational Goals - 2026
+operational_goals:
 
-    - goal: "Reduce overdue receivables"
-      priority: "medium"
-      owner: "Finance"
-      deadline: "2024-12-15"
-      notes: "Chase outstanding invoices over 30 days"
+  q1_2026:
+    - goal: "Complete Ferring pilot successfully"
+      priority: "Critical"
+      success_metric: "Pilot converts to production contract"
+      value_if_success: 150000  # £100-250K
+    
+    - goal: "Secure GSK Blenrep renewal"
+      priority: "Critical"
+      value: 250000
+      deadline: "2025-11-30"
+    
+    - goal: "Close ViiV pipeline deals"
+      priority: "High"
+      deals:
+        - "ViiV Comms Congress (£45k)"
+        - "ViiV DOL CX (£100k)"
 
-  this_year:
-    - goal: "Expand into US market"
-      priority: "medium"
-      owner: "Patrick"
-      notes: "Exploratory - identify first US client"
+  q2_2026:
+    - goal: "Activate 3-4 additional BRIANN pilots"
+      priority: "High"
+      target_revenue: 120000  # 4 × £30k
+      prospects:
+        - "GSK Sci Coms"
+        - "Merck"
+        - "UCB"
+        - "Chugai"
+    
+    - goal: "Close JJMT expansion deals"
+      priority: "High"
+      deals:
+        - "JJMT Europe (£175k)"
+        - "JJMT Vision (£175k)"
 
-    - goal: "Build recurring revenue to 80%"
-      priority: "high"
-      notes: "Reduce dependency on project work"
+  q3_2026:
+    - goal: "Sign first production BRIANN contracts"
+      priority: "Critical"
+      target: 2  # Minimum 2 production contracts
+      notes: "Validates product-market fit"
+    
+    - goal: "Achieve 15% platform revenue"
+      priority: "High"
 
-    - goal: "Hire senior developer"
-      priority: "medium"
-      notes: "Dependent on cash position and pipeline"
+  q4_2026:
+    - goal: "Revenue mix: 25% platform, 75% services"
+      priority: "Critical"
+      notes: "Transition milestone"
+    
+    - goal: "8+ active clients"
+      priority: "High"
+      notes: "Diversification milestone"
 
-growth_priorities:
-  - "Client retention (especially at-risk accounts)"
-  - "Upsell existing clients"
-  - "New logo acquisition in pharma"
-  - "Product development for AI capabilities"
+# Diversification Goals
+diversification:
+  current_state:
+    top_client_percentage: 50  # ViiV/GSK
+    active_clients: 4
+    risk_level: "Critical"
+  
+  target_state_2026:
+    max_single_client: 30
+    active_clients: 8
+    new_logos_required: 4
+  
+  target_state_2027:
+    max_single_client: 25
+    active_clients: 12
 
-risk_mitigation:
-  - "Diversify client base (reduce ViiV concentration)"
-  - "Build relationships at multiple levels in key accounts"
-  - "Maintain 3-month cash reserve"
+# BRIANN Productisation Goals
+briann_goals:
+  
+  pilots:
+    price_per_pilot: 30000
+    target_pilots_2026: 8
+    conversion_rate_target: 65  # Percent
+    
+  production_contracts:
+    target_value_range:
+      low: 100000
+      high: 250000
+    target_margin: 75  # Percent
+  
+  adoption_targets:
+    - module: "Compliance Engine"
+      target: "80% of clients using weekly"
+    - module: "Insights Analyst"
+      target: "100% of clients using"
+    - module: "Influencer Mapper"
+      target: "60% of clients using"
+
+# Risk Mitigation Goals
+risk_goals:
+  
+  - goal: "Reduce ViiV dependency"
+    current: 50  # Percent of revenue
+    target: 30
+    deadline: "End 2026"
+    actions:
+      - "Win 4+ new logos"
+      - "Expand JJMT, Bayer, Abbott relationships"
+  
+  - goal: "Diversify data sources"
+    metric: "Data Source Dependency Ratio"
+    current: 70  # % reliant on X/Twitter
+    target: 50
+    actions:
+      - "Integrate PubMed"
+      - "Build first-party data collection"
+      - "Reddit integration"
+  
+  - goal: "Build recurring platform revenue"
+    current: 0
+    target: 450000  # By end 2026
+    notes: "Reduces services volatility"

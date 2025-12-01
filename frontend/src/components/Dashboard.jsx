@@ -7,6 +7,8 @@ import InvoiceList from './InvoiceList';
 import ProfitLoss from './ProfitLoss';
 import AIInsights from './AIInsights';
 import QuickQuestion from './QuickQuestion';
+import CashForecast from './CashForecast';
+import Anomalies from './Anomalies';
 
 function Dashboard() {
   const [isConnected, setIsConnected] = useState(false);
@@ -151,6 +153,12 @@ function Dashboard() {
 
           {/* Quick Question Panel */}
           <QuickQuestion />
+
+          {/* Cash Forecast and Anomalies Row */}
+          <div className="ai-panels-grid">
+            <CashForecast />
+            <Anomalies />
+          </div>
 
           {/* Outstanding Invoices */}
           <InvoiceList

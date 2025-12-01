@@ -1,0 +1,205 @@
+# Buzz Radar Strategic Metrics
+# KPIs for AI CFO tracking and analysis
+# Source: AI CFO Knowledge Base (November 2025)
+
+# Principle: Financial metrics are lagging indicators. 
+# Track leading indicators that predict future revenue and risk.
+
+# SERVICES HEALTH METRICS
+services_metrics:
+
+  - metric: "Client Concentration Ratio"
+    definition: "Revenue % from top 2 clients"
+    current: 50  # ~50% from ViiV/GSK
+    target: 30  # No single client >30%
+    frequency: "Monthly"
+    severity_if_exceeded: "Critical"
+    ai_cfo_action: "Alert if any client exceeds 35%. Recommend diversification actions."
+
+  - metric: "Delivery Team Utilisation"
+    definition: "Billable hours as % of capacity"
+    target_range:
+      min: 70
+      max: 85
+    warning_threshold: 90
+    frequency: "Weekly"
+    significance: "High utilisation = revenue ceiling. Signals hiring need."
+    ai_cfo_action: "If >85% for 4+ weeks, recommend hiring discussion."
+
+  - metric: "Client NPS"
+    definition: "Net Promoter Score by client"
+    target: 50
+    warning_threshold: 30
+    frequency: "Quarterly"
+    significance: "Leading indicator of renewal risk"
+    ai_cfo_action: "Flag any client NPS below 30 for immediate attention."
+
+  - metric: "Insight Delivery Velocity"
+    definition: "Average time from request to delivery"
+    target: "48 hours for standard requests"
+    significance: "BRIANN's internal impact - should show improvement"
+    ai_cfo_action: "Track trend. Increasing velocity = efficiency problem."
+
+# BRIANN PRODUCT METRICS
+product_metrics:
+
+  - metric: "Pilot Conversion Rate"
+    definition: "% of £30K pilots converting to production contracts"
+    target: 65  # 60-70%
+    minimum_acceptable: 50
+    frequency: "Per pilot completion"
+    significance: "Validates product-market fit"
+    ai_cfo_action: "Critical metric. Alert if trending below 50%."
+
+  - metric: "Time-to-Value"
+    definition: "Days from pilot start to first client 'aha moment'"
+    target: 14  # Within first 2 weeks
+    maximum: 30
+    significance: "Shorter = higher conversion probability"
+    ai_cfo_action: "Track per pilot. Flag pilots not showing value by day 21."
+
+  - metric: "Feature Adoption Velocity"
+    definition: "Which BRIANN modules clients use most"
+    significance: "Identifies killer features for positioning"
+    modules_to_track:
+      - "Insights Analyst"
+      - "Influencer Mapper"
+      - "Compliance Engine"
+      - "Data-Driven Strategist"
+    ai_cfo_action: "Report adoption patterns. Recommend product focus."
+
+  - metric: "Compliance Check Volume"
+    definition: "MLR pre-screens per client per month"
+    significance: "High usage = workflow embedding = retention"
+    ai_cfo_action: "Track trend. Increasing = good stickiness indicator."
+
+  - metric: "AI Confidence Distribution"
+    definition: "% of outputs in 'grey zone' requiring human review"
+    target: 20  # 80% should be clear pass/fail
+    maximum: 40
+    significance: "Quality indicator and liability risk management"
+    ai_cfo_action: "Alert if grey zone exceeds 40%. May indicate model issues."
+
+# INFRASTRUCTURE COST METRICS
+cost_metrics:
+
+  - metric: "Token Consumption Rate"
+    definition: "LLM tokens processed daily/monthly"
+    frequency: "Daily monitoring, weekly review"
+    significance: "Leading indicator of COGS"
+    ai_cfo_action: "Correlate with revenue. Alert on unusual spikes."
+
+  - metric: "API Efficiency Ratio"
+    definition: "Revenue generated per £1 of data API spend"
+    target: 20  # £20 revenue per £1 API cost
+    minimum: 10
+    significance: "With X API at $42K/month, efficiency is critical"
+    ai_cfo_action: "Alert if ratio falls below 15."
+
+  - metric: "Cost per Insight"
+    definition: "Total variable cost divided by insights delivered"
+    target: 50  # £50 per insight
+    maximum: 100
+    significance: "Unit economics health check"
+    ai_cfo_action: "Track trend. Increasing = efficiency problem."
+
+  - metric: "Data Source Dependency"
+    definition: "% of insights reliant on single source (e.g., X/Twitter)"
+    current: 70  # Estimate
+    target: 50
+    significance: "Platform risk indicator - diversification imperative"
+    ai_cfo_action: "Report quarterly. Recommend alternative sources."
+
+# FINANCIAL HEALTH METRICS
+financial_metrics:
+
+  - metric: "Gross Margin"
+    current: 94
+    target: 85  # Will decrease as platform scales
+    minimum: 70
+    frequency: "Monthly"
+    ai_cfo_action: "Alert if falls below 75% without explanation."
+
+  - metric: "Net Margin"
+    current: 11
+    target_range:
+      min: 10
+      max: 15
+    significance: "Must maintain profitability through transition"
+    ai_cfo_action: "Alert if falls below 8%."
+
+  - metric: "Revenue Growth Rate"
+    current: 109  # YoY
+    target: 50  # Minimum annual growth
+    frequency: "Quarterly"
+    ai_cfo_action: "Track against target. Report variance."
+
+  - metric: "Cash Conversion Cycle"
+    definition: "Days from service delivery to cash collection"
+    target: 45
+    maximum: 60
+    significance: "Bootstrapped company - cash timing matters as much as profit"
+    ai_cfo_action: "Alert if average exceeds 50 days."
+
+  - metric: "Revenue Mix"
+    definition: "Platform vs Services percentage"
+    current:
+      services: 100
+      platform: 0
+    target_end_2026:
+      services: 75
+      platform: 25
+    target_mid_2027:
+      services: 10
+      platform: 90
+    frequency: "Monthly"
+    ai_cfo_action: "Track progress. Report against transition milestones."
+
+# PIPELINE HEALTH METRICS
+pipeline_metrics:
+
+  - metric: "Pipeline Coverage Ratio"
+    definition: "Total pipeline value / Revenue target"
+    target: 3.0  # 3x coverage
+    minimum: 2.0
+    frequency: "Weekly"
+    ai_cfo_action: "Alert if falls below 2.5x."
+
+  - metric: "Weighted Pipeline"
+    definition: "Sum of (deal value × likelihood)"
+    frequency: "Weekly"
+    ai_cfo_action: "Compare to revenue target. Report gap."
+
+  - metric: "Deal Velocity"
+    definition: "Average days in each pipeline stage"
+    targets:
+      verbal_agreement: 14
+      procurement: 30
+      proposal_review: 21
+      warm_lead: 45
+    ai_cfo_action: "Flag deals stuck >2x expected duration."
+
+  - metric: "New Logo Rate"
+    definition: "New clients acquired per quarter"
+    target: 2
+    significance: "Diversification progress"
+    ai_cfo_action: "Track against concentration reduction goal."
+
+# AI CFO OPERATING PRINCIPLES
+operating_principles:
+  
+  - principle: "Margin-Aware Logic"
+    description: "Don't just report costs—actively govern them"
+    action: "Flag low-margin clients for renegotiation"
+  
+  - principle: "Cash Conversion Focus"
+    description: "Cash flow timing matters as much as profit"
+    action: "Prioritise receivables collection"
+  
+  - principle: "Leading Indicator Priority"
+    description: "Track non-financial metrics that predict future performance"
+    action: "Weight leading indicators in analysis"
+  
+  - principle: "Transition Balance"
+    description: "Don't sacrifice profitable services for platform growth too quickly"
+    action: "Alert if services margin drops faster than platform revenue grows"

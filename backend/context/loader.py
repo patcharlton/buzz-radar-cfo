@@ -25,7 +25,7 @@ def load_all_context():
     Load all context YAML files and return combined dictionary.
 
     Returns:
-        dict: Combined context with keys: business, clients, goals, rules, pipeline
+        dict: Combined context with keys: business, clients, goals, rules, pipeline, risks, metrics
     """
     return {
         'business': load_yaml_file('business_context.yaml'),
@@ -33,6 +33,8 @@ def load_all_context():
         'goals': load_yaml_file('goals.yaml'),
         'rules': load_yaml_file('rules.yaml'),
         'pipeline': load_yaml_file('pipeline.yaml'),
+        'risks': load_yaml_file('risks.yaml'),
+        'metrics': load_yaml_file('metrics.yaml'),
     }
 
 
@@ -239,3 +241,199 @@ def get_company_info():
         'currency': company.get('currency', 'GBP'),
         'industry': company.get('industry', 'SaaS'),
     }
+
+
+def get_critical_risks():
+    """
+    Get all risks with severity="Critical" or "High".
+
+    Returns:
+        list: Critical and high severity risks with relevant details
+    """
+    risks_data = load_yaml_file('risks.yaml')
+    all_risks = risks_data.get('risks', [])
+
+    critical_risks = []
+    for risk in all_risks:
+        severity = risk.get('severity', '').lower()
+        if severity in ['critical', 'high']:
+            critical_risks.append({
+                'id': risk.get('id'),
+                'name': risk.get('name'),
+                'severity': risk.get('severity'),
+                'category': risk.get('category'),
+                'current_state': risk.get('current_state', {}),
+                'specific_threats': risk.get('specific_threats', []),
+                'exposures': risk.get('exposures', []),
+                'mitigation': risk.get('mitigation', []),
+                'ai_cfo_action': risk.get('ai_cfo_action'),
+            })
+
+    return critical_risks
+
+
+def get_current_metrics():
+    """
+    Get key current state metrics for AI CFO analysis.
+
+    Returns:
+        dict: Current metrics including financial health, services, and cost metrics
+    """
+    metrics_data = load_yaml_file('metrics.yaml')
+    business = load_yaml_file('business_context.yaml')
+    financials = business.get('financials', {})
+
+    # Extract current values from metrics
+    financial_metrics = metrics_data.get('financial_metrics', [])
+    services_metrics = metrics_data.get('services_metrics', [])
+    cost_metrics = metrics_data.get('cost_metrics', [])
+
+    def find_metric(metrics_list, metric_name):
+        for m in metrics_list:
+            if m.get('metric') == metric_name:
+                return m
+        return {}
+
+    return {
+        # Financial health
+        'annual_revenue': financials.get('annual_revenue', 1300000),
+        'gross_margin': financials.get('gross_margin', 94),
+        'net_margin': financials.get('net_margin', 11),
+        'net_profit': financials.get('net_profit', 148000),
+        'yoy_growth': financials.get('yoy_growth', 109),
+
+        # Revenue mix (current vs target)
+        'revenue_mix': find_metric(financial_metrics, 'Revenue Mix'),
+
+        # Client concentration
+        'client_concentration': find_metric(services_metrics, 'Client Concentration Ratio'),
+
+        # Cost metrics
+        'api_efficiency': find_metric(cost_metrics, 'API Efficiency Ratio'),
+        'data_source_dependency': find_metric(cost_metrics, 'Data Source Dependency'),
+    }
+
+
+def get_q1_goals():
+    """
+    Get Q1 2026 operational goals.
+
+    Returns:
+        list: Q1 2026 goals with priorities and metrics
+    """
+    goals_data = load_yaml_file('goals.yaml')
+    operational = goals_data.get('operational_goals', {})
+    return operational.get('q1_2026', [])
+
+
+def get_transition_status():
+    """
+    Get services-to-platform transition status.
+
+    Returns:
+        dict: Current transition status including revenue mix and milestones
+    """
+    business = load_yaml_file('business_context.yaml')
+    goals = load_yaml_file('goals.yaml')
+    metrics = load_yaml_file('metrics.yaml')
+
+    business_model = business.get('business_model', {})
+    financials = business.get('financials', {})
+    exit_thesis = goals.get('exit_thesis', {})
+    financial_goals = goals.get('financial_goals', {})
+
+    # Get revenue mix targets
+    financial_metrics = metrics.get('financial_metrics', [])
+    revenue_mix = {}
+    for m in financial_metrics:
+        if m.get('metric') == 'Revenue Mix':
+            revenue_mix = m
+            break
+
+    return {
+        'current_state': business_model.get('current_state', '100% services-led'),
+        'current_revenue': financials.get('annual_revenue', 1300000),
+
+        'revenue_mix': {
+            'current': revenue_mix.get('current', {'services': 100, 'platform': 0}),
+            'target_end_2026': revenue_mix.get('target_end_2026', {'services': 75, 'platform': 25}),
+            'target_mid_2027': revenue_mix.get('target_mid_2027', {'services': 10, 'platform': 90}),
+        },
+
+        'timeline': business_model.get('transition_timeline', {}),
+
+        'exit_thesis': {
+            'target_year': exit_thesis.get('target_year', 2030),
+            'valuation_low': exit_thesis.get('valuation', {}).get('low', 35000000),
+            'valuation_high': exit_thesis.get('valuation', {}).get('high', 50000000),
+            'requirements': exit_thesis.get('requirements', {}),
+        },
+
+        'platform_revenue_target_2026': financial_goals.get('short_term', [{}])[3].get('target', 450000)
+        if len(financial_goals.get('short_term', [])) > 3 else 450000,
+
+        'milestones': business.get('milestones', {}),
+    }
+
+
+def get_deals_closing_next_n_days(days=30):
+    """
+    Get all deals expected to close within the next N days.
+
+    Args:
+        days: Number of days to look ahead (default 30)
+
+    Returns:
+        list: Deals closing within the specified timeframe
+    """
+    from datetime import date, timedelta
+
+    pipeline = load_pipeline()
+    deals = pipeline.get('deals', [])
+    today = date.today()
+    end_date = today + timedelta(days=days)
+
+    closing = []
+    for deal in deals:
+        expected_close = deal.get('expected_close')
+        stage = deal.get('stage', '')
+        if expected_close and stage != 'Won':
+            try:
+                close_date = date.fromisoformat(expected_close)
+                if today <= close_date <= end_date:
+                    closing.append(deal)
+            except ValueError:
+                pass
+
+    return sorted(closing, key=lambda x: x.get('expected_close', ''))
+
+
+def get_milestones_next_90_days():
+    """
+    Get key milestones for the next 90 days.
+
+    Returns:
+        list: Upcoming milestones from goals
+    """
+    from datetime import date
+
+    goals_data = load_yaml_file('goals.yaml')
+    operational = goals_data.get('operational_goals', {})
+
+    # Determine current quarter
+    today = date.today()
+
+    # Get current and next quarter goals
+    milestones = []
+
+    # Q1 2026 goals
+    for goal in operational.get('q1_2026', []):
+        milestones.append({
+            'quarter': 'Q1 2026',
+            'goal': goal.get('goal'),
+            'priority': goal.get('priority'),
+            'value': goal.get('value') or goal.get('value_if_success'),
+            'deadline': goal.get('deadline'),
+        })
+
+    return milestones
