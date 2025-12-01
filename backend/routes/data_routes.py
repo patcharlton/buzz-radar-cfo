@@ -104,6 +104,24 @@ def sync():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@data_bp.route('/api/recurring-costs')
+@require_xero_connection
+def recurring_costs():
+    """Get recurring costs analysis and future predictions."""
+    try:
+        from flask import request
+        months = request.args.get('months', 6, type=int)
+        months = min(max(months, 3), 12)  # Clamp between 3-12 months
+
+        data = xero_client.get_recurring_costs_analysis(months=months)
+        return jsonify({
+            'success': True,
+            **data,
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # =============================================================================
 # CONTEXT DATA ENDPOINTS (Pipeline, Clients, Risks, Metrics)
 # =============================================================================

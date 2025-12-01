@@ -344,3 +344,162 @@ class XeroClient:
             'monthly_expenses': monthly_expenses,
             'last_synced': datetime.utcnow().isoformat(),
         }
+
+    def get_paid_bills(self, months=6):
+        """
+        Get paid bills from the last N months for recurring cost analysis.
+
+        Args:
+            months: Number of months to look back (default: 6)
+
+        Returns:
+            list: Paid bills with vendor, amount, date, and line items
+        """
+        from datetime import timedelta
+
+        today = date.today()
+        start_date = today - timedelta(days=months * 30)
+
+        # Fetch paid bills (ACCPAY with PAID status)
+        params = {
+            'where': f'Type=="ACCPAY" AND Status=="PAID" AND Date>=DateTime({start_date.year},{start_date.month},{start_date.day})',
+        }
+
+        data = self._get('Invoices', params=params)
+
+        bills = []
+        for inv in data.get('Invoices', []):
+            paid_date_str = inv.get('FullyPaidOnDate') or inv.get('DateString')
+
+            paid_date = None
+            if paid_date_str:
+                try:
+                    # Handle different date formats
+                    if 'T' in paid_date_str:
+                        paid_date = datetime.fromisoformat(paid_date_str.replace('Z', '+00:00')).date()
+                    else:
+                        paid_date = datetime.strptime(paid_date_str[:10], '%Y-%m-%d').date()
+                except (ValueError, TypeError):
+                    pass
+
+            contact = inv.get('Contact', {})
+
+            bills.append({
+                'invoice_id': inv.get('InvoiceID'),
+                'invoice_number': inv.get('InvoiceNumber'),
+                'vendor': contact.get('Name', 'Unknown'),
+                'contact_id': contact.get('ContactID'),
+                'total': float(inv.get('Total', 0)),
+                'paid_date': paid_date.isoformat() if paid_date else None,
+                'month_key': paid_date.strftime('%Y-%m') if paid_date else None,
+                'reference': inv.get('Reference', ''),
+            })
+
+        return bills
+
+    def get_recurring_costs_analysis(self, months=6):
+        """
+        Analyze paid bills to identify recurring costs and predict future expenses.
+
+        Args:
+            months: Number of months to analyze (default: 6)
+
+        Returns:
+            dict: Recurring costs breakdown with predictions
+        """
+        from collections import defaultdict
+        from datetime import timedelta
+
+        bills = self.get_paid_bills(months=months)
+        today = date.today()
+
+        # Group bills by vendor
+        vendor_bills = defaultdict(list)
+        for bill in bills:
+            vendor_bills[bill['vendor']].append(bill)
+
+        recurring_costs = []
+        total_monthly_avg = 0
+
+        for vendor, vendor_bill_list in vendor_bills.items():
+            # Calculate stats for this vendor
+            amounts = [b['total'] for b in vendor_bill_list]
+            months_with_bills = len(set(b['month_key'] for b in vendor_bill_list if b['month_key']))
+
+            avg_amount = sum(amounts) / len(amounts) if amounts else 0
+            total_spent = sum(amounts)
+            frequency = months_with_bills / months if months > 0 else 0
+
+            # Determine if this is a recurring cost (appears in 50%+ of months)
+            is_recurring = frequency >= 0.5
+
+            # Calculate variance (consistency of amounts)
+            if len(amounts) > 1:
+                mean = avg_amount
+                variance = sum((x - mean) ** 2 for x in amounts) / len(amounts)
+                std_dev = variance ** 0.5
+                consistency = 1 - (std_dev / mean if mean > 0 else 0)
+                consistency = max(0, min(1, consistency))  # Clamp to 0-1
+            else:
+                consistency = 1.0
+
+            # Predicted monthly cost (weighted by frequency)
+            predicted_monthly = avg_amount * frequency
+
+            if is_recurring or total_spent > 1000:  # Include significant one-offs too
+                recurring_costs.append({
+                    'vendor': vendor,
+                    'occurrences': len(vendor_bill_list),
+                    'months_active': months_with_bills,
+                    'average_amount': round(avg_amount, 2),
+                    'total_spent': round(total_spent, 2),
+                    'frequency': round(frequency, 2),
+                    'is_recurring': is_recurring,
+                    'consistency': round(consistency, 2),
+                    'predicted_monthly': round(predicted_monthly, 2),
+                    'last_bill_date': max((b['paid_date'] for b in vendor_bill_list if b['paid_date']), default=None),
+                })
+                total_monthly_avg += predicted_monthly
+
+        # Sort by predicted monthly cost (highest first)
+        recurring_costs.sort(key=lambda x: x['predicted_monthly'], reverse=True)
+
+        # Generate next 3 month predictions
+        predictions = []
+        for i in range(3):
+            month = today.month + i + 1
+            year = today.year
+            while month > 12:
+                month -= 12
+                year += 1
+
+            month_name = date(year, month, 1).strftime('%B %Y')
+
+            # Predict costs for this month
+            month_costs = []
+            for cost in recurring_costs:
+                if cost['is_recurring']:
+                    # Predict this vendor will bill
+                    expected = cost['average_amount'] * cost['frequency']
+                    if expected > 100:  # Only include significant predictions
+                        month_costs.append({
+                            'vendor': cost['vendor'],
+                            'predicted_amount': round(cost['average_amount'], 2),
+                            'confidence': round(cost['frequency'] * cost['consistency'], 2),
+                        })
+
+            predictions.append({
+                'month': month_name,
+                'month_key': f"{year}-{month:02d}",
+                'predicted_total': round(sum(c['predicted_amount'] for c in month_costs), 2),
+                'top_costs': month_costs[:5],  # Top 5 expected costs
+            })
+
+        return {
+            'analysis_period_months': months,
+            'total_bills_analyzed': len(bills),
+            'unique_vendors': len(vendor_bills),
+            'recurring_costs': recurring_costs[:15],  # Top 15 vendors
+            'average_monthly_spend': round(total_monthly_avg, 2),
+            'predictions': predictions,
+        }

@@ -151,6 +151,16 @@ export const api = {
   },
 
   /**
+   * Get recurring costs analysis and predictions
+   */
+  async getRecurringCosts(months = 6) {
+    const response = await fetch(`${API_BASE}/api/recurring-costs?months=${months}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
    * Get AI-generated daily insights
    */
   async getDailyInsights() {
