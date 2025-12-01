@@ -4,6 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   TrendingUp,
   TrendingDown,
   Calendar,
@@ -12,9 +18,11 @@ import {
   RefreshCw,
   ChevronDown,
   Clock,
+  ArrowDownLeft,
+  ArrowUpRight,
 } from 'lucide-react';
 import api from '../services/api';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 
 function CashForecast() {
   const [forecast, setForecast] = useState(null);
@@ -149,42 +157,138 @@ function CashForecast() {
               </div>
 
               {/* Weekly Projections */}
-              <div className="overflow-x-auto -mx-4 px-4">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-zinc-100 dark:border-zinc-800">
-                      <th className="text-left py-2 font-medium text-muted-foreground">Week</th>
-                      <th className="text-left py-2 font-medium text-muted-foreground">Ending</th>
-                      <th className="text-right py-2 font-medium text-muted-foreground">In</th>
-                      <th className="text-right py-2 font-medium text-muted-foreground">Out</th>
-                      <th className="text-right py-2 font-medium text-muted-foreground">Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {forecast.forecast?.map((week, index) => (
-                      <motion.tr
-                        key={week.week}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 * index }}
-                        className="border-b border-zinc-50 dark:border-zinc-800/50"
-                      >
-                        <td className="py-2 font-medium">W{week.week}</td>
-                        <td className="py-2 text-muted-foreground">{week.ending_date}</td>
-                        <td className="py-2 text-right font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
-                          +{formatCurrency(week.inflows || week.expected_inflows || 0)}
-                        </td>
-                        <td className="py-2 text-right font-mono tabular-nums text-red-600 dark:text-red-400">
-                          -{formatCurrency(week.outflows || week.expected_outflows || 0)}
-                        </td>
-                        <td className={`py-2 text-right font-mono tabular-nums font-medium ${getBalanceClass(week.projected_balance)}`}>
-                          {formatCurrency(week.projected_balance)}
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <TooltipProvider delayDuration={200}>
+                <div className="overflow-x-auto -mx-4 px-4">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-zinc-100 dark:border-zinc-800">
+                        <th className="text-left py-2 font-medium text-muted-foreground">Week</th>
+                        <th className="text-left py-2 font-medium text-muted-foreground">Ending</th>
+                        <th className="text-right py-2 font-medium text-muted-foreground">In</th>
+                        <th className="text-right py-2 font-medium text-muted-foreground">Out</th>
+                        <th className="text-right py-2 font-medium text-muted-foreground">Balance</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {forecast.forecast?.map((week, index) => {
+                        const inflowDetails = week.inflow_details || [];
+                        const outflowDetails = week.outflow_details || [];
+                        const hasInflowDetails = inflowDetails.length > 0;
+                        const hasOutflowDetails = outflowDetails.length > 0;
+
+                        return (
+                          <motion.tr
+                            key={week.week}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.1 * index }}
+                            className="border-b border-zinc-50 dark:border-zinc-800/50"
+                          >
+                            <td className="py-2 font-medium">W{week.week}</td>
+                            <td className="py-2 text-muted-foreground">{week.ending_date}</td>
+
+                            {/* Inflows with tooltip */}
+                            <td className="py-2 text-right">
+                              {hasInflowDetails ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button className="font-mono tabular-nums text-emerald-600 dark:text-emerald-400 hover:underline cursor-help inline-flex items-center gap-1">
+                                      <ArrowDownLeft className="h-3 w-3" />
+                                      +{formatCurrency(week.inflows || week.expected_inflows || 0)}
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="left" className="max-w-xs p-0">
+                                    <div className="p-3">
+                                      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-zinc-100 dark:border-zinc-700">
+                                        <ArrowDownLeft className="h-4 w-4 text-emerald-500" />
+                                        <span className="font-medium text-sm">Expected Inflows</span>
+                                      </div>
+                                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                                        {inflowDetails.map((item, i) => (
+                                          <div key={i} className="text-xs">
+                                            <div className="flex items-center justify-between gap-2">
+                                              <span className="font-medium truncate">{item.source}</span>
+                                              <span className="font-mono text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                                                {formatCurrency(item.amount)}
+                                              </span>
+                                            </div>
+                                            <div className="text-muted-foreground flex items-center justify-between mt-0.5">
+                                              <span className="truncate">{item.description}</span>
+                                              {item.likelihood && (
+                                                <Badge variant="outline" className={cn(
+                                                  "text-[10px] ml-2",
+                                                  item.likelihood === 'High' && "border-emerald-500 text-emerald-600",
+                                                  item.likelihood === 'Medium' && "border-amber-500 text-amber-600",
+                                                  item.likelihood === 'Low' && "border-red-500 text-red-600"
+                                                )}>
+                                                  {item.likelihood}
+                                                </Badge>
+                                              )}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <span className="font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
+                                  +{formatCurrency(week.inflows || week.expected_inflows || 0)}
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Outflows with tooltip */}
+                            <td className="py-2 text-right">
+                              {hasOutflowDetails ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button className="font-mono tabular-nums text-red-600 dark:text-red-400 hover:underline cursor-help inline-flex items-center gap-1">
+                                      <ArrowUpRight className="h-3 w-3" />
+                                      -{formatCurrency(week.outflows || week.expected_outflows || 0)}
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="left" className="max-w-xs p-0">
+                                    <div className="p-3">
+                                      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-zinc-100 dark:border-zinc-700">
+                                        <ArrowUpRight className="h-4 w-4 text-red-500" />
+                                        <span className="font-medium text-sm">Expected Outflows</span>
+                                      </div>
+                                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                                        {outflowDetails.map((item, i) => (
+                                          <div key={i} className="text-xs">
+                                            <div className="flex items-center justify-between gap-2">
+                                              <span className="font-medium truncate">{item.category}</span>
+                                              <span className="font-mono text-red-600 dark:text-red-400 whitespace-nowrap">
+                                                {formatCurrency(item.amount)}
+                                              </span>
+                                            </div>
+                                            <div className="text-muted-foreground mt-0.5">
+                                              {item.description}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <span className="font-mono tabular-nums text-red-600 dark:text-red-400">
+                                  -{formatCurrency(week.outflows || week.expected_outflows || 0)}
+                                </span>
+                              )}
+                            </td>
+
+                            <td className={`py-2 text-right font-mono tabular-nums font-medium ${getBalanceClass(week.projected_balance)}`}>
+                              {formatCurrency(week.projected_balance)}
+                            </td>
+                          </motion.tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </TooltipProvider>
 
               {/* Risks */}
               <AnimatePresence>

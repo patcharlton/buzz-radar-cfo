@@ -109,13 +109,28 @@ Guidelines:
 - Provide a confidence level (High/Medium/Low) for each week
 - Flag any weeks where cash might drop below £200k minimum
 - Consider seasonality (December/January typically slower)
+- Include detailed breakdown of inflows (expected invoice payments) and outflows (expenses, bills)
 
 Output format:
 Provide a structured JSON response with this exact format:
 {
   "current_balance": <number>,
   "forecast": [
-    {"week": 1, "ending_date": "YYYY-MM-DD", "projected_balance": <number>, "inflows": <number>, "outflows": <number>, "confidence": "High|Medium|Low", "notes": "string"},
+    {
+      "week": 1,
+      "ending_date": "YYYY-MM-DD",
+      "projected_balance": <number>,
+      "inflows": <number>,
+      "outflows": <number>,
+      "confidence": "High|Medium|Low",
+      "notes": "string",
+      "inflow_details": [
+        {"source": "Client Name", "description": "Invoice INV-XXX or description", "amount": <number>, "likelihood": "High|Medium|Low"}
+      ],
+      "outflow_details": [
+        {"category": "Payroll|Suppliers|Operating|Tax|Other", "description": "Description of expense", "amount": <number>}
+      ]
+    },
     {"week": 2, ...},
     {"week": 3, ...},
     {"week": 4, ...}
