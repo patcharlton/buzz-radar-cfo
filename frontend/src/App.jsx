@@ -12,6 +12,7 @@ import { TransitionProgress } from '@/components/dashboard/TransitionProgress';
 import { CashFlowChart } from '@/components/charts/CashFlowChart';
 import CashForecast from '@/components/CashForecast';
 import Anomalies from '@/components/Anomalies';
+import ProjectionWidget from '@/components/ProjectionWidget';
 import api from '@/services/api';
 
 function App() {
@@ -144,6 +145,9 @@ function App() {
 
             {/* AI CFO Panel - Unified insights and Q&A */}
             <AiCfoPanel />
+
+            {/* 3-Month Financial Projection */}
+            <ProjectionWidget />
 
             {/* Cash Forecast and Anomalies Row - Equal height cards */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">

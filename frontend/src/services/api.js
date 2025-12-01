@@ -9,6 +9,58 @@ async function handleResponse(response) {
 }
 
 export const api = {
+  // =============================================================================
+  // FINANCIAL PROJECTIONS
+  // =============================================================================
+
+  /**
+   * Get full 3-month financial projection
+   */
+  async getProjections(months = 3) {
+    const response = await fetch(`${API_BASE}/api/projections?months=${months}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get cost breakdown only
+   */
+  async getProjectionCosts(months = 3) {
+    const response = await fetch(`${API_BASE}/api/projections/costs?months=${months}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get gap analysis only
+   */
+  async getProjectionGap(months = 3, target = null) {
+    let url = `${API_BASE}/api/projections/gap?months=${months}`;
+    if (target) {
+      url += `&target=${target}`;
+    }
+    const response = await fetch(url, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get revenue scenarios only (no auth required)
+   */
+  async getProjectionScenarios(months = 3) {
+    const response = await fetch(`${API_BASE}/api/projections/scenarios?months=${months}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  // =============================================================================
+  // AUTH
+  // =============================================================================
+
   /**
    * Check if connected to Xero
    */

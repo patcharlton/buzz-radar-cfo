@@ -956,7 +956,7 @@ def build_forecast_prompt(financial_data, context):
     Build a prompt for 4-week cash flow forecast.
 
     Args:
-        financial_data: Dict with cash_position, receivables, payables
+        financial_data: Dict with cash_position, receivables, payables, monthly_expenses
         context: Dict with business context including pipeline
 
     Returns:
@@ -966,6 +966,7 @@ def build_forecast_prompt(financial_data, context):
     cash = financial_data.get('cash_position', {})
     receivables = financial_data.get('receivables', {})
     payables = financial_data.get('payables', {})
+    monthly_expenses = financial_data.get('monthly_expenses', {})
     pipeline_data = context.get('pipeline', {})
     rules = context.get('rules', {})
 
@@ -975,6 +976,30 @@ def build_forecast_prompt(financial_data, context):
     for i in range(1, 5):
         week_end = today + timedelta(days=7*i)
         week_dates.append(week_end.strftime("%Y-%m-%d"))
+
+    # Get average burn rate from historical data, falling back to config if unavailable
+    avg_monthly_burn = monthly_expenses.get('average_monthly_expenses', 0)
+    config_burn = rules.get('cash_management', {}).get('runway_calculation', {}).get('estimated_monthly_burn', 80000)
+
+    # Use historical average if available and reasonable, otherwise fall back to config
+    if avg_monthly_burn > 0:
+        monthly_burn = avg_monthly_burn
+        burn_source = "historical average (last 3 months)"
+    else:
+        monthly_burn = config_burn
+        burn_source = "estimated from config"
+
+    weekly_burn = monthly_burn / 4
+
+    # Format historical expense breakdown
+    expense_breakdown = ""
+    months_data = monthly_expenses.get('months', [])
+    if months_data:
+        expense_breakdown = "\n#### Historical Monthly Expenses (for burn rate calculation)\n"
+        for m in months_data:
+            partial_indicator = " (partial month)" if m.get('is_partial') else ""
+            expense_breakdown += f"- {m['month']}: {format_currency(m['expenses'])}{partial_indicator}\n"
+        expense_breakdown += f"- **Average (complete months): {format_currency(avg_monthly_burn)}**\n"
 
     prompt = f"""Today is {today.strftime("%A, %d %B %Y")}.
 
@@ -997,10 +1022,10 @@ Invoices:
 ### Pipeline Deals Closing Soon
 {format_pipeline_summary(pipeline_data, rules)}
 
-### Operating Costs
-- Estimated Monthly Burn: {format_currency(rules.get('cash_management', {}).get('runway_calculation', {}).get('estimated_monthly_burn', 80000))}
-- Weekly Estimated Outflow: {format_currency(rules.get('cash_management', {}).get('runway_calculation', {}).get('estimated_monthly_burn', 80000) / 4)}
-
+### Operating Costs (Burn Rate)
+- Average Monthly Burn: {format_currency(monthly_burn)} ({burn_source})
+- Weekly Estimated Outflow: {format_currency(weekly_burn)}
+{expense_breakdown}
 ### Thresholds
 - Minimum Cash Reserve: {format_currency(rules.get('cash_management', {}).get('minimum_balance', 150000))}
 - Target Cash Reserve: {format_currency(rules.get('cash_management', {}).get('comfortable_balance', 300000))}
@@ -1013,9 +1038,11 @@ Create a 4-week cash flow forecast ending on these dates:
 - Week 3: {week_dates[2]}
 - Week 4: {week_dates[3]}
 
+IMPORTANT: Use the average monthly burn rate of {format_currency(monthly_burn)} (weekly: {format_currency(weekly_burn)}) for projecting outflows. This is calculated from actual historical spending, not just the latest month.
+
 Consider:
 1. When receivables are likely to be paid (pharma clients typically pay in 30-45 days)
-2. Regular operating expenses and payables due
+2. Regular operating expenses based on the historical average burn rate
 3. Any pipeline deals likely to close and generate invoices
 4. Seasonality (if December/January, expect slower collections)
 

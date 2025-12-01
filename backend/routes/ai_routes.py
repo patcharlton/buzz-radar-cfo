@@ -243,8 +243,8 @@ def cash_forecast():
                 'cached': True
             })
 
-        # Get financial data from Xero
-        financial_data = get_financial_data()
+        # Get financial data from Xero (including historical monthly expenses for burn rate)
+        financial_data = xero_client.get_forecast_data()
 
         # Load business context
         context = load_all_context()

@@ -9,6 +9,7 @@ import AIInsights from './AIInsights';
 import QuickQuestion from './QuickQuestion';
 import CashForecast from './CashForecast';
 import Anomalies from './Anomalies';
+import ProjectionWidget from './ProjectionWidget';
 
 function Dashboard() {
   const [isConnected, setIsConnected] = useState(false);
@@ -150,6 +151,9 @@ function Dashboard() {
 
           {/* AI Insights Panel */}
           <AIInsights />
+
+          {/* 3-Month Financial Projection */}
+          <ProjectionWidget />
 
           {/* Quick Question Panel */}
           <QuickQuestion />

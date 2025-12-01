@@ -254,6 +254,65 @@ class XeroClient:
             'period': f"{from_date.strftime('%B %Y')}",
         }
 
+    def get_monthly_expenses(self, num_months=3):
+        """
+        Get expenses for the last N months to calculate average burn rate.
+
+        Args:
+            num_months: Number of months to fetch (default: 3)
+
+        Returns:
+            dict: Monthly expenses and calculated average
+        """
+        today = date.today()
+        monthly_data = []
+
+        for i in range(num_months):
+            # Calculate month boundaries (going backwards)
+            if i == 0:
+                # Current month (partial)
+                month_start = date(today.year, today.month, 1)
+                month_end = today
+            else:
+                # Previous complete months
+                year = today.year
+                month = today.month - i
+                while month <= 0:
+                    month += 12
+                    year -= 1
+
+                month_start = date(year, month, 1)
+                # Last day of the month
+                if month == 12:
+                    month_end = date(year + 1, 1, 1)
+                else:
+                    month_end = date(year, month + 1, 1)
+                from datetime import timedelta
+                month_end = month_end - timedelta(days=1)
+
+            pnl = self.get_profit_and_loss(from_date=month_start, to_date=month_end)
+            monthly_data.append({
+                'month': month_start.strftime('%B %Y'),
+                'expenses': pnl.get('expenses', 0),
+                'revenue': pnl.get('revenue', 0),
+                'net_profit': pnl.get('net_profit', 0),
+                'is_partial': i == 0,  # Current month is partial
+            })
+
+        # Calculate average from complete months only (exclude current partial month)
+        complete_months = [m for m in monthly_data if not m['is_partial']]
+        if complete_months:
+            avg_expenses = sum(m['expenses'] for m in complete_months) / len(complete_months)
+        else:
+            # Fall back to current month if no complete months
+            avg_expenses = monthly_data[0]['expenses'] if monthly_data else 0
+
+        return {
+            'months': monthly_data,
+            'average_monthly_expenses': avg_expenses,
+            'num_complete_months': len(complete_months),
+        }
+
     def get_dashboard_data(self):
         """Get all data needed for the dashboard in a single call."""
         bank_summary = self.get_bank_summary()
@@ -266,5 +325,22 @@ class XeroClient:
             'receivables': receivables,
             'payables': payables,
             'profit_loss': pnl,
+            'last_synced': datetime.utcnow().isoformat(),
+        }
+
+    def get_forecast_data(self):
+        """Get all data needed for cash flow forecasting, including historical burn rate."""
+        bank_summary = self.get_bank_summary()
+        receivables = self.get_receivables_summary()
+        payables = self.get_payables_summary()
+        pnl = self.get_profit_and_loss()
+        monthly_expenses = self.get_monthly_expenses(num_months=3)
+
+        return {
+            'cash_position': bank_summary,
+            'receivables': receivables,
+            'payables': payables,
+            'profit_loss': pnl,
+            'monthly_expenses': monthly_expenses,
             'last_synced': datetime.utcnow().isoformat(),
         }

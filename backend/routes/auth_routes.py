@@ -1,9 +1,13 @@
+import os
 from flask import Blueprint, redirect, request, session, jsonify, url_for
 
 from xero import XeroAuth
 
 auth_bp = Blueprint('auth', __name__)
 xero_auth = XeroAuth()
+
+# Frontend URL for redirects after OAuth
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 
 
 @auth_bp.route('/auth/login')
@@ -61,7 +65,7 @@ def callback():
         session.pop('oauth_state', None)
 
         # Redirect to frontend dashboard
-        return redirect('http://localhost:5173/')
+        return redirect(f'{FRONTEND_URL}/')
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
