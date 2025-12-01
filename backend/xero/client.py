@@ -356,6 +356,7 @@ class XeroClient:
             list: Paid bills with vendor, amount, date, and line items
         """
         from datetime import timedelta
+        import re
 
         today = date.today()
         start_date = today - timedelta(days=months * 30)
@@ -367,20 +368,36 @@ class XeroClient:
 
         data = self._get('Invoices', params=params)
 
-        bills = []
-        for inv in data.get('Invoices', []):
-            paid_date_str = inv.get('FullyPaidOnDate') or inv.get('DateString')
+        def parse_xero_date(date_value):
+            """Parse Xero date which can be in multiple formats."""
+            if not date_value:
+                return None
 
-            paid_date = None
-            if paid_date_str:
+            # Handle Microsoft JSON date format: /Date(1751241600000+0000)/
+            if isinstance(date_value, str) and date_value.startswith('/Date('):
+                match = re.search(r'/Date\((\d+)', date_value)
+                if match:
+                    timestamp_ms = int(match.group(1))
+                    return datetime.utcfromtimestamp(timestamp_ms / 1000).date()
+
+            # Handle ISO format with time: 2025-06-23T00:00:00
+            if isinstance(date_value, str):
                 try:
-                    # Handle different date formats
-                    if 'T' in paid_date_str:
-                        paid_date = datetime.fromisoformat(paid_date_str.replace('Z', '+00:00')).date()
+                    if 'T' in date_value:
+                        return datetime.fromisoformat(date_value.replace('Z', '+00:00')).date()
                     else:
-                        paid_date = datetime.strptime(paid_date_str[:10], '%Y-%m-%d').date()
+                        return datetime.strptime(date_value[:10], '%Y-%m-%d').date()
                 except (ValueError, TypeError):
                     pass
+
+            return None
+
+        bills = []
+        for inv in data.get('Invoices', []):
+            # Try FullyPaidOnDate first, then fall back to DateString
+            paid_date = parse_xero_date(inv.get('FullyPaidOnDate'))
+            if not paid_date:
+                paid_date = parse_xero_date(inv.get('DateString'))
 
             contact = inv.get('Contact', {})
 
