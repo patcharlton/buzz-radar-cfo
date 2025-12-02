@@ -20,8 +20,10 @@ import {
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import api from '@/services/api';
+import { Sparkline } from '@/components/charts/Sparkline';
+import { YoYBadge } from '@/components/ui/yoy-badge';
 
-export function Payables({ data, loading }) {
+export function Payables({ data, loading, trends, yoyComparison }) {
   const [recurringCosts, setRecurringCosts] = useState(null);
   const [costsLoading, setCostsLoading] = useState(false);
   const [showPredictions, setShowPredictions] = useState(false);
@@ -72,6 +74,11 @@ export function Payables({ data, loading }) {
   const billCount = data?.count || data?.bill_count || 0;
   const dueThisWeek = data?.due_this_week || 0;
 
+  // Sparkline data from trends prop
+  const sparklineData = trends?.payables || [];
+  const yoyPct = yoyComparison?.payables;
+  const comparisonMonth = yoyComparison?.comparison_month;
+
   const getConfidenceColor = (confidence) => {
     if (confidence >= 0.7) return 'text-emerald-600 dark:text-emerald-400';
     if (confidence >= 0.5) return 'text-amber-600 dark:text-amber-400';
@@ -109,6 +116,27 @@ export function Payables({ data, loading }) {
               {formatCurrency(total)}
             </span>
           </div>
+
+          {/* YoY comparison badge - inverted because lower payables is better */}
+          {yoyPct !== null && yoyPct !== undefined && (
+            <div className="mt-1">
+              <YoYBadge percentage={yoyPct} comparisonMonth={comparisonMonth} inverted />
+            </div>
+          )}
+
+          {/* 12-month sparkline */}
+          {sparklineData.length > 0 && (
+            <div className="mt-3">
+              <Sparkline
+                data={sparklineData}
+                color="#ef4444"
+                height={32}
+              />
+              <p className="text-xs text-muted-foreground text-center mt-1">
+                12-month trend
+              </p>
+            </div>
+          )}
 
           {/* Due this week */}
           {dueThisWeek > 0 && (

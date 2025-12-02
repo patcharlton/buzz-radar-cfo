@@ -334,6 +334,90 @@ export const api = {
     });
     return response.json();
   },
+
+  // =============================================================================
+  // HISTORY & METRICS
+  // =============================================================================
+
+  /**
+   * Get historical monthly snapshots
+   */
+  async getHistorySnapshots(months = 60) {
+    const response = await fetch(`${API_BASE}/api/history/snapshots?months=${months}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get cash position history
+   */
+  async getCashHistory(months = 12) {
+    const response = await fetch(`${API_BASE}/api/history/cash?months=${months}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get revenue history with MoM% and YoY%
+   */
+  async getRevenueHistory(months = 12) {
+    const response = await fetch(`${API_BASE}/api/history/revenue?months=${months}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get cash runway metrics
+   */
+  async getRunway() {
+    const response = await fetch(`${API_BASE}/api/metrics/runway`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get combined trends for dashboard sparklines
+   */
+  async getHistoryTrends(months = 12) {
+    const response = await fetch(`${API_BASE}/api/history/trends?months=${months}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Trigger historical data backfill
+   */
+  async triggerBackfill(months = 60, dryRun = false) {
+    const response = await fetch(`${API_BASE}/api/history/backfill`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ months, dry_run: dryRun }),
+    });
+    return response.json();
+  },
+
+  /**
+   * Manually trigger snapshot capture
+   */
+  async triggerSnapshot(dryRun = false) {
+    const response = await fetch(`${API_BASE}/api/history/snapshot`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ dry_run: dryRun }),
+    });
+    return response.json();
+  },
 };
 
 export default api;

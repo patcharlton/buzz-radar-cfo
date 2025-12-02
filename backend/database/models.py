@@ -173,3 +173,75 @@ class AICache(db.Model):
             'expires_at': self.expires_at.isoformat() if self.expires_at else None,
             'is_expired': self.is_expired(),
         }
+
+
+class MonthlySnapshot(db.Model):
+    """Store monthly financial snapshots for historical analysis."""
+
+    __tablename__ = 'monthly_snapshots'
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.Date, nullable=False, unique=True, index=True)  # First of month
+    cash_position = db.Column(db.Numeric(14, 2))
+    receivables_total = db.Column(db.Numeric(14, 2))
+    receivables_overdue = db.Column(db.Numeric(14, 2))
+    payables_total = db.Column(db.Numeric(14, 2))
+    payables_overdue = db.Column(db.Numeric(14, 2))
+    revenue = db.Column(db.Numeric(14, 2))
+    expenses = db.Column(db.Numeric(14, 2))
+    net_profit = db.Column(db.Numeric(14, 2))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        """Convert to dictionary for API responses."""
+        return {
+            'id': self.id,
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
+            'cash_position': float(self.cash_position) if self.cash_position else 0,
+            'receivables_total': float(self.receivables_total) if self.receivables_total else 0,
+            'receivables_overdue': float(self.receivables_overdue) if self.receivables_overdue else 0,
+            'payables_total': float(self.payables_total) if self.payables_total else 0,
+            'payables_overdue': float(self.payables_overdue) if self.payables_overdue else 0,
+            'revenue': float(self.revenue) if self.revenue else 0,
+            'expenses': float(self.expenses) if self.expenses else 0,
+            'net_profit': float(self.net_profit) if self.net_profit else 0,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+    @classmethod
+    def get_or_create(cls, snapshot_date):
+        """Get existing snapshot or create new one (upsert logic)."""
+        existing = cls.query.filter_by(snapshot_date=snapshot_date).first()
+        if existing:
+            return existing, False
+        new_snapshot = cls(snapshot_date=snapshot_date)
+        return new_snapshot, True
+
+
+class AccountBalanceHistory(db.Model):
+    """Store historical account balances for trend analysis."""
+
+    __tablename__ = 'account_balances_history'
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.Date, nullable=False, index=True)
+    account_id = db.Column(db.String(100), nullable=False)
+    account_name = db.Column(db.String(200), nullable=False)
+    balance = db.Column(db.Numeric(14, 2))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Composite unique constraint
+    __table_args__ = (
+        db.UniqueConstraint('snapshot_date', 'account_id', name='unique_account_snapshot'),
+    )
+
+    def to_dict(self):
+        """Convert to dictionary for API responses."""
+        return {
+            'id': self.id,
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
+            'account_id': self.account_id,
+            'account_name': self.account_name,
+            'balance': float(self.balance) if self.balance else 0,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }

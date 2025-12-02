@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Landmark, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { Sparkline } from '@/components/charts/Sparkline';
+import { YoYBadge } from '@/components/ui/yoy-badge';
 
 function AnimatedNumber({ value, duration = 1 }) {
   const spring = useSpring(0, { duration: duration * 1000 });
@@ -19,7 +21,7 @@ function AnimatedNumber({ value, duration = 1 }) {
   return <motion.span>{display}</motion.span>;
 }
 
-export function CashPosition({ data, loading }) {
+export function CashPosition({ data, loading, trends, yoyComparison }) {
   if (loading) {
     return (
       <Card>
@@ -42,6 +44,11 @@ export function CashPosition({ data, loading }) {
   const minReserve = 200000;
   const isLow = total < minReserve;
   const trend = data?.trend_percentage || 0;
+
+  // Sparkline data from trends prop
+  const sparklineData = trends?.cash || [];
+  const yoyPct = yoyComparison?.cash_position;
+  const comparisonMonth = yoyComparison?.comparison_month;
 
   return (
     <motion.div
@@ -84,6 +91,27 @@ export function CashPosition({ data, loading }) {
               </Badge>
             )}
           </div>
+
+          {/* YoY comparison badge */}
+          {yoyPct !== null && yoyPct !== undefined && (
+            <div className="mt-1">
+              <YoYBadge percentage={yoyPct} comparisonMonth={comparisonMonth} />
+            </div>
+          )}
+
+          {/* 12-month sparkline */}
+          {sparklineData.length > 0 && (
+            <div className="mt-3">
+              <Sparkline
+                data={sparklineData}
+                color={isLow ? '#ef4444' : '#10b981'}
+                height={36}
+              />
+              <p className="text-xs text-muted-foreground text-center mt-1">
+                12-month trend
+              </p>
+            </div>
+          )}
 
           {/* Account breakdown */}
           {accounts.length > 0 && (

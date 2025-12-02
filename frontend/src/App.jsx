@@ -9,6 +9,7 @@ import { AiCfoPanel } from '@/components/dashboard/AiCfoPanel';
 import { PipelineSummary } from '@/components/dashboard/PipelineSummary';
 import { RisksSummary } from '@/components/dashboard/RisksSummary';
 import { TransitionProgress } from '@/components/dashboard/TransitionProgress';
+import { RunwayCard } from '@/components/dashboard/RunwayCard';
 import { CashFlowChart } from '@/components/charts/CashFlowChart';
 import CashForecast from '@/components/CashForecast';
 import Anomalies from '@/components/Anomalies';
@@ -26,6 +27,8 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState(null);
+  const [historyTrends, setHistoryTrends] = useState(null);
+  const [runwayData, setRunwayData] = useState(null);
 
   const checkConnection = useCallback(async () => {
     try {
@@ -46,6 +49,30 @@ function App() {
       setLastSynced(data.last_synced);
     } catch (err) {
       toast.error('Failed to load dashboard data');
+    }
+  }, []);
+
+  const fetchHistoryTrends = useCallback(async () => {
+    try {
+      const data = await api.getHistoryTrends(12);
+      if (data.success) {
+        setHistoryTrends(data);
+      }
+    } catch (err) {
+      // Silently fail - trends are optional
+      console.warn('Failed to load history trends:', err);
+    }
+  }, []);
+
+  const fetchRunway = useCallback(async () => {
+    try {
+      const data = await api.getRunway();
+      if (data.success) {
+        setRunwayData(data);
+      }
+    } catch (err) {
+      // Silently fail - runway data is optional
+      console.warn('Failed to load runway data:', err);
     }
   }, []);
 
@@ -98,12 +125,17 @@ function App() {
       setLoading(true);
       const connected = await checkConnection();
       if (connected) {
-        await fetchDashboardData();
+        // Fetch all data in parallel
+        await Promise.all([
+          fetchDashboardData(),
+          fetchHistoryTrends(),
+          fetchRunway(),
+        ]);
       }
       setLoading(false);
     };
     init();
-  }, [checkConnection, fetchDashboardData, isAuthenticated]);
+  }, [checkConnection, fetchDashboardData, fetchHistoryTrends, fetchRunway, isAuthenticated]);
 
   // Show login page if not authenticated
   if (!isAuthenticated) {
@@ -148,15 +180,21 @@ function App() {
               <CashPosition
                 data={dashboardData.cash_position}
                 loading={!dashboardData}
+                trends={historyTrends?.trends}
+                yoyComparison={historyTrends?.yoy_comparisons}
               />
               <Receivables
                 data={dashboardData.receivables}
                 loading={!dashboardData}
+                trends={historyTrends?.trends}
+                yoyComparison={historyTrends?.yoy_comparisons}
               />
               <div className="sm:col-span-2 md:col-span-1">
                 <Payables
                   data={dashboardData.payables}
                   loading={!dashboardData}
+                  trends={historyTrends?.trends}
+                  yoyComparison={historyTrends?.yoy_comparisons}
                 />
               </div>
             </div>
@@ -172,6 +210,9 @@ function App() {
                 <TransitionProgress />
               </div>
             </div>
+
+            {/* Cash Runway Card */}
+            <RunwayCard data={runwayData} loading={!dashboardData} />
 
             {/* 3-Month Financial Projection */}
             <ProjectionWidget />

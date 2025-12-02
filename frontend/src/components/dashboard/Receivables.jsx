@@ -5,8 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowDownLeft, Clock, AlertCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { Sparkline } from '@/components/charts/Sparkline';
+import { YoYBadge } from '@/components/ui/yoy-badge';
 
-export function Receivables({ data, loading }) {
+export function Receivables({ data, loading, trends, yoyComparison }) {
   if (loading) {
     return (
       <Card>
@@ -30,6 +32,11 @@ export function Receivables({ data, loading }) {
   const overdueCount = data?.overdue_count || 0;
   const largestInvoice = data?.invoices?.[0];
   const hasOverdue = overdueTotal > 0;
+
+  // Sparkline data from trends prop
+  const sparklineData = trends?.receivables || [];
+  const yoyPct = yoyComparison?.receivables;
+  const comparisonMonth = yoyComparison?.comparison_month;
 
   return (
     <motion.div
@@ -56,6 +63,27 @@ export function Receivables({ data, loading }) {
               {formatCurrency(total)}
             </span>
           </div>
+
+          {/* YoY comparison badge */}
+          {yoyPct !== null && yoyPct !== undefined && (
+            <div className="mt-1">
+              <YoYBadge percentage={yoyPct} comparisonMonth={comparisonMonth} />
+            </div>
+          )}
+
+          {/* 12-month sparkline */}
+          {sparklineData.length > 0 && (
+            <div className="mt-3">
+              <Sparkline
+                data={sparklineData}
+                color="#10b981"
+                height={32}
+              />
+              <p className="text-xs text-muted-foreground text-center mt-1">
+                12-month trend
+              </p>
+            </div>
+          )}
 
           {/* Overdue callout */}
           {hasOverdue && (

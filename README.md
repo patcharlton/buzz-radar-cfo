@@ -91,6 +91,8 @@ The frontend runs on http://localhost:5173
 
 ## API Endpoints
 
+### Core Endpoints
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/auth/login` | Initiate Xero OAuth flow |
@@ -104,13 +106,26 @@ The frontend runs on http://localhost:5173
 | GET | `/api/pnl` | Get P&L summary |
 | POST | `/api/sync` | Trigger data refresh |
 
+### History & Metrics Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/history/snapshots` | Get historical monthly snapshots (last 60 months) |
+| GET | `/api/history/cash` | Get cash position trend with dates |
+| GET | `/api/history/revenue` | Get revenue with MoM% and YoY% |
+| GET | `/api/history/trends` | Get combined trends for sparklines |
+| GET | `/api/metrics/runway` | Get runway months and avg monthly burn |
+| POST | `/api/history/backfill` | Trigger historical data backfill from Xero |
+| POST | `/api/history/snapshot` | Manually trigger snapshot capture |
+
 ## Project Structure
 
 ```
 buzz-radar-cfo/
 ├── backend/
-│   ├── app.py                 # Flask application
-│   ├── config.py              # Configuration
+│   ├── app.py                 # Flask application factory
+│   ├── config.py              # Configuration (SQLite/PostgreSQL)
+│   ├── wsgi.py                # WSGI entry point
 │   ├── requirements.txt
 │   ├── xero/
 │   │   ├── auth.py            # OAuth2 handling
@@ -119,27 +134,92 @@ buzz-radar-cfo/
 │   ├── database/
 │   │   ├── db.py              # Database setup
 │   │   └── models.py          # SQLAlchemy models
-│   └── routes/
-│       ├── auth_routes.py     # OAuth routes
-│       └── data_routes.py     # API endpoints
+│   ├── routes/
+│   │   ├── auth_routes.py     # OAuth routes
+│   │   ├── data_routes.py     # Core API endpoints
+│   │   ├── ai_routes.py       # AI analysis endpoints
+│   │   ├── history_routes.py  # Historical data endpoints
+│   │   └── projection_routes.py
+│   ├── scripts/
+│   │   └── backfill_history.py  # Historical data backfill
+│   ├── jobs/
+│   │   └── capture_snapshot.py  # Monthly snapshot capture
+│   ├── ai/
+│   │   ├── claude_client.py   # Claude API wrapper
+│   │   ├── prompts.py         # AI prompt templates
+│   │   └── cache.py           # AI response caching
+│   └── context/               # Business context YAML files
 ├── frontend/
 │   ├── package.json
 │   ├── vite.config.js
 │   └── src/
 │       ├── App.jsx
 │       ├── components/
-│       │   ├── Dashboard.jsx
-│       │   ├── CashPosition.jsx
-│       │   ├── Receivables.jsx
-│       │   ├── Payables.jsx
-│       │   ├── ProfitLoss.jsx
-│       │   └── InvoiceList.jsx
+│       │   ├── dashboard/     # Dashboard cards
+│       │   ├── charts/        # Chart components (Sparkline, etc.)
+│       │   ├── ui/            # Shadcn/UI components
+│       │   └── layout/        # Navigation
 │       └── services/
 │           └── api.js
 ├── .env.example
 ├── .gitignore
 └── README.md
 ```
+
+## Historical Data Management
+
+### Backfilling Historical Data
+
+To populate historical P&L data from Xero (up to 5 years):
+
+```bash
+cd backend
+
+# Dry run to see what would be captured
+python -m backend.scripts.backfill_history --dry-run
+
+# Run actual backfill (60 months by default)
+python -m backend.scripts.backfill_history
+
+# Backfill only last 24 months
+python -m backend.scripts.backfill_history --months 24
+```
+
+### Monthly Snapshot Capture
+
+Capture current financial snapshot (designed to run monthly via cron):
+
+```bash
+cd backend
+
+# Dry run
+python -m backend.jobs.capture_snapshot --dry-run
+
+# Capture actual snapshot
+python -m backend.jobs.capture_snapshot
+```
+
+For Render, set up a scheduled job with:
+- Command: `python -m backend.jobs.capture_snapshot`
+- Schedule: First of each month
+
+## Database
+
+The application supports both SQLite (development) and PostgreSQL (production).
+
+### PostgreSQL Setup (Render)
+
+1. Create a PostgreSQL database on Render
+2. Add the internal database URL as `DATABASE_URL` environment variable
+3. The app automatically converts `postgres://` to `postgresql://` for SQLAlchemy compatibility
+4. Tables are created automatically on first run via `db.create_all()`
+
+### Database Models
+
+- `monthly_snapshots`: Historical monthly financial data (P&L, cash, AR/AP)
+- `account_balances_history`: Individual account balance trends
+- `xero_tokens`: Encrypted OAuth tokens
+- `ai_cache`: Cached AI responses with TTL
 
 ## Security Notes
 
@@ -148,9 +228,12 @@ buzz-radar-cfo/
 - Access tokens auto-refresh before expiry
 - Never commit `.env` file
 
-## Next Phase (Phase 2)
+## Features
 
-- Claude AI integration for financial analysis
-- Daily recommendations based on data
-- Chat interface for questions
-- Business context integration
+- **AI CFO Analysis**: Claude-powered daily insights and Q&A
+- **Cash Runway**: Calculated runway based on 6-month burn rate
+- **Historical Trends**: Sparklines showing 12-month trends
+- **YoY Comparisons**: Year-over-year growth indicators
+- **Financial Projections**: 3-month forward projections
+- **Anomaly Detection**: AI-powered financial anomaly alerts
+- **Pipeline Integration**: Notion or YAML-based sales pipeline

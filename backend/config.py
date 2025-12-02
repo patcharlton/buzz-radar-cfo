@@ -12,8 +12,24 @@ class Config:
 
     # Database
     DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///cfo.db')
+
+    # Handle Render's postgres:// URL format (SQLAlchemy 1.4+ requires postgresql://)
+    if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Connection pool settings for PostgreSQL
+    if DATABASE_URL and DATABASE_URL.startswith('postgresql://'):
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            'pool_pre_ping': True,  # Test connections before using
+            'pool_recycle': 300,    # Recycle connections after 5 minutes
+            'pool_size': 5,         # Number of connections to maintain
+            'max_overflow': 10,     # Allow up to 10 additional connections
+        }
+    else:
+        SQLALCHEMY_ENGINE_OPTIONS = {}
 
     # Xero OAuth2
     XERO_CLIENT_ID = os.getenv('XERO_CLIENT_ID')
