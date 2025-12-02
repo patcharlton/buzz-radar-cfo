@@ -97,6 +97,15 @@
   background: hsl(var(--muted-foreground) / 0.5);
 }
 
+/* Hide scrollbar for horizontal scroll containers on mobile */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Animation for numbers */
 @keyframes countUp {
   from {

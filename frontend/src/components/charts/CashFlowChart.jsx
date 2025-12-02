@@ -137,30 +137,31 @@ export function CashFlowChart() {
       transition={{ delay: 0.2 }}
     >
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2">
           <div>
             <CardTitle className="text-base font-medium">4-Week Cash Flow Forecast</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Projected cash position over the next 4 weeks
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+              Projected cash position over 4 weeks
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {minBalance < minReserve && (
-              <Badge variant="destructive" className="gap-1">
+              <Badge variant="destructive" className="gap-1 text-xs">
                 <AlertTriangle className="h-3 w-3" />
-                Below Reserve
+                <span className="hidden sm:inline">Below Reserve</span>
+                <span className="sm:hidden">Low</span>
               </Badge>
             )}
-            <Badge variant={trend >= 0 ? 'success' : 'destructive'} className="gap-1">
+            <Badge variant={trend >= 0 ? 'success' : 'destructive'} className="gap-1 text-xs">
               {trend >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
               {formatCurrency(Math.abs(trend))}
             </Badge>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="h-[250px]">
+        <CardContent className="px-2 sm:px-6">
+          <div className="h-[200px] sm:h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 5, left: -15, bottom: 0 }}>
                 <defs>
                   <linearGradient id="cashGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
@@ -170,15 +171,16 @@ export function CashFlowChart() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis
                   dataKey="name"
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                   tickLine={false}
                   axisLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={(value) => `£${(value / 1000).toFixed(0)}k`}
+                  width={45}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <ReferenceLine
@@ -186,10 +188,10 @@ export function CashFlowChart() {
                   stroke="#ef4444"
                   strokeDasharray="5 5"
                   label={{
-                    value: 'Min Reserve',
+                    value: 'Min',
                     position: 'right',
                     fill: '#ef4444',
-                    fontSize: 10
+                    fontSize: 9
                   }}
                 />
                 <Area
@@ -206,12 +208,12 @@ export function CashFlowChart() {
 
           {/* Risks and Recommendations */}
           {(forecast?.risks?.length > 0 || forecast?.recommendations?.length > 0) && (
-            <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-zinc-200 dark:border-zinc-800">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {forecast?.risks?.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium text-negative mb-2">Risks</h4>
-                    <ul className="space-y-1 text-sm text-muted-foreground">
+                    <h4 className="text-xs sm:text-sm font-medium text-negative mb-1.5 sm:mb-2">Risks</h4>
+                    <ul className="space-y-1 text-xs sm:text-sm text-muted-foreground">
                       {forecast.risks.slice(0, 2).map((risk, i) => (
                         <li key={i} className="flex items-start gap-2">
                           <span className="text-red-500 mt-0.5">•</span>
@@ -223,8 +225,8 @@ export function CashFlowChart() {
                 )}
                 {forecast?.recommendations?.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium text-positive mb-2">Recommendations</h4>
-                    <ul className="space-y-1 text-sm text-muted-foreground">
+                    <h4 className="text-xs sm:text-sm font-medium text-positive mb-1.5 sm:mb-2">Recommendations</h4>
+                    <ul className="space-y-1 text-xs sm:text-sm text-muted-foreground">
                       {forecast.recommendations.slice(0, 2).map((rec, i) => (
                         <li key={i} className="flex items-start gap-2">
                           <span className="text-emerald-500 mt-0.5">•</span>

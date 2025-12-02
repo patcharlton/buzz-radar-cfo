@@ -142,9 +142,9 @@ function App() {
         syncing={syncing}
       >
         {dashboardData && (
-          <div className="space-y-4">
-            {/* Key Metrics Row - 3 equal columns */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+          <div className="space-y-3 sm:space-y-4">
+            {/* Key Metrics Row - 3 equal columns on tablet+ */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 items-stretch">
               <CashPosition
                 data={dashboardData.cash_position}
                 loading={!dashboardData}
@@ -153,27 +153,31 @@ function App() {
                 data={dashboardData.receivables}
                 loading={!dashboardData}
               />
-              <Payables
-                data={dashboardData.payables}
-                loading={!dashboardData}
-              />
+              <div className="sm:col-span-2 md:col-span-1">
+                <Payables
+                  data={dashboardData.payables}
+                  loading={!dashboardData}
+                />
+              </div>
             </div>
+
+            {/* AI CFO Panel - Priority on mobile */}
+            <AiCfoPanel />
 
             {/* Strategic Context Row - Pipeline, Risks, Transition */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-stretch">
               <PipelineSummary />
               <RisksSummary />
-              <TransitionProgress />
+              <div className="sm:col-span-2 lg:col-span-1">
+                <TransitionProgress />
+              </div>
             </div>
-
-            {/* AI CFO Panel - Unified insights and Q&A */}
-            <AiCfoPanel />
 
             {/* 3-Month Financial Projection */}
             <ProjectionWidget />
 
             {/* Cash Forecast and Anomalies Row - Equal height cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 items-stretch">
               <CashForecast />
               <Anomalies />
             </div>

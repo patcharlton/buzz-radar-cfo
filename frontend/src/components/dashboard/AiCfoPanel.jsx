@@ -391,8 +391,8 @@ export function AiCfoPanel() {
 
           {/* Daily Insights */}
           {insights && (
-            <div className="p-5 border-b border-zinc-200 dark:border-zinc-800">
-              <div className="flex items-center justify-between mb-4">
+            <div className="p-3 sm:p-5 border-b border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <div className="p-1.5 rounded-md bg-emerald-100 dark:bg-emerald-900/30">
                     <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -403,9 +403,10 @@ export function AiCfoPanel() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowFullInsights(!showFullInsights)}
-                  className="text-xs gap-1"
+                  className="text-xs gap-1 px-2 sm:px-3"
                 >
-                  {showFullInsights ? 'Show Less' : 'Show Full Report'}
+                  <span className="hidden sm:inline">{showFullInsights ? 'Show Less' : 'Show Full Report'}</span>
+                  <span className="sm:hidden">{showFullInsights ? 'Less' : 'More'}</span>
                   {showFullInsights ? (
                     <ChevronUp className="h-3 w-3" />
                   ) : (
@@ -413,29 +414,30 @@ export function AiCfoPanel() {
                   )}
                 </Button>
               </div>
-              <div className={`max-w-none ${showFullInsights ? '' : 'max-h-80 overflow-y-auto pr-2'}`}>
+              <div className={`max-w-none ${showFullInsights ? '' : 'max-h-64 sm:max-h-80 overflow-y-auto pr-1 sm:pr-2'}`}>
                 {formatMarkdown(insights)}
               </div>
               {generatedAt && (
-                <p className="text-xs text-muted-foreground mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-1.5">
+                <p className="text-xs text-muted-foreground mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-1.5">
                   <Clock className="h-3 w-3" />
-                  Generated: {new Date(generatedAt).toLocaleString()}
+                  <span className="hidden sm:inline">Generated: {new Date(generatedAt).toLocaleString()}</span>
+                  <span className="sm:hidden">{new Date(generatedAt).toLocaleDateString()}</span>
                 </p>
               )}
             </div>
           )}
 
           {/* Ask Question Section */}
-          <div className="p-5 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/20">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="p-3 sm:p-5 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/20">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
               <div className="p-1.5 rounded-md bg-indigo-100 dark:bg-indigo-900/30">
                 <MessageCircle className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
               </div>
               <span className="text-sm font-semibold">Ask Your AI CFO</span>
             </div>
 
-            {/* Suggested Questions */}
-            <div className="flex flex-wrap gap-2 mb-3">
+            {/* Suggested Questions - Horizontal scroll on mobile */}
+            <div className="flex gap-2 mb-3 overflow-x-auto pb-2 -mx-3 px-3 sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible scrollbar-hide">
               {SUGGESTED_QUESTIONS.map((suggestion, index) => {
                 const Icon = suggestion.icon;
                 return (
@@ -446,7 +448,7 @@ export function AiCfoPanel() {
                     transition={{ delay: 0.05 * index }}
                     onClick={() => handleSuggestionClick(suggestion.text)}
                     disabled={asking}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap flex-shrink-0
                              bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300
                              border border-zinc-200 dark:border-zinc-700
                              hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-700 dark:hover:text-indigo-300
@@ -466,14 +468,14 @@ export function AiCfoPanel() {
                 type="text"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
-                placeholder="Ask about finances, pipeline, risks, or strategy..."
+                placeholder="Ask about finances..."
                 disabled={asking}
-                className="flex-1 h-9 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1 text-sm shadow-sm placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex-1 h-10 sm:h-9 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1 text-base sm:text-sm shadow-sm placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
               />
               <Button
                 type="submit"
                 disabled={asking || !question.trim()}
-                className="gap-2"
+                className="gap-2 h-10 sm:h-9 px-3 sm:px-4"
               >
                 {asking ? (
                   <RefreshCw className="h-4 w-4 animate-spin" />
@@ -491,7 +493,7 @@ export function AiCfoPanel() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="flex items-center justify-center gap-3 py-6"
+                  className="flex items-center justify-center gap-3 py-4 sm:py-6"
                 >
                   <div className="flex gap-1">
                     <motion.div
@@ -510,7 +512,7 @@ export function AiCfoPanel() {
                       transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
                     />
                   </div>
-                  <span className="text-sm text-muted-foreground">Analyzing with Xero data + strategic context...</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground">Analyzing...</span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -522,16 +524,16 @@ export function AiCfoPanel() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="mt-5"
+                  className="mt-4 sm:mt-5"
                 >
                   <div className="bg-white dark:bg-zinc-900 rounded-xl border border-indigo-200 dark:border-indigo-900/50 overflow-hidden shadow-sm">
                     {/* Header */}
-                    <div className="px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center gap-2">
+                    <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-white" />
                       <span className="text-sm font-medium text-white">AI CFO Response</span>
                     </div>
                     {/* Content */}
-                    <div className="p-5">
+                    <div className="p-3 sm:p-5">
                       {formatMarkdown(answer)}
                     </div>
                   </div>
