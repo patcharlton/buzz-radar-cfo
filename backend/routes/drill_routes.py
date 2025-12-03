@@ -47,7 +47,7 @@ def drill_cash():
     Get bank transactions for drill-down view.
 
     Query params:
-        from_date: Start date (ISO format, default: 30 days ago)
+        from_date: Start date (ISO format, default: 90 days ago, use 'all' for all history)
         to_date: End date (ISO format, default: today)
         account_id: Optional bank account ID to filter
         page: Page number (default: 1)
@@ -55,7 +55,18 @@ def drill_cash():
     """
     try:
         today = date.today()
-        from_date = parse_date(request.args.get('from_date'), today - timedelta(days=90))
+        from_date_str = request.args.get('from_date', '')
+
+        # Support 'all' for fetching all historical data (go back 10 years)
+        if from_date_str.lower() == 'all' or from_date_str == '':
+            # If explicitly 'all' or empty, check if they want all history
+            if from_date_str.lower() == 'all':
+                from_date = date(today.year - 10, 1, 1)  # 10 years back
+            else:
+                from_date = today - timedelta(days=90)  # Default 90 days
+        else:
+            from_date = parse_date(from_date_str, today - timedelta(days=90))
+
         to_date = parse_date(request.args.get('to_date'), today)
         account_id = request.args.get('account_id')
         page = request.args.get('page', 1, type=int)

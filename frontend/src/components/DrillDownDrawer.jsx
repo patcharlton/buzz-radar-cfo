@@ -70,11 +70,18 @@ export function DrillDownDrawer() {
       case '365':
         fromDate = subMonths(today, 12);
         break;
+      case '730':
+        fromDate = subMonths(today, 24); // 2 years
+        break;
+      case '1825':
+        fromDate = subMonths(today, 60); // 5 years
+        break;
       case 'ytd':
         fromDate = startOfYear(today);
         break;
       case 'all':
-        return {}; // No date filter
+        // Pass 'all' explicitly so backend knows to fetch all history
+        return { fromDate: 'all', toDate: format(today, 'yyyy-MM-dd') };
       default:
         fromDate = subDays(today, 90);
     }
@@ -357,8 +364,10 @@ export function DrillDownDrawer() {
                       <SelectItem value="90">Last 90 days</SelectItem>
                       <SelectItem value="180">Last 6 months</SelectItem>
                       <SelectItem value="365">Last 12 months</SelectItem>
+                      <SelectItem value="730">Last 2 years</SelectItem>
+                      <SelectItem value="1825">Last 5 years</SelectItem>
                       <SelectItem value="ytd">Year to date</SelectItem>
-                      <SelectItem value="all">All time</SelectItem>
+                      <SelectItem value="all">All history</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
