@@ -193,9 +193,7 @@ function AppContent({
         onLogout={onLogout}
         syncing={false}
       >
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-        </div>
+        <LoadingDashboard />
       </Shell>
     );
   }
@@ -279,6 +277,101 @@ function AppContent({
       <DrillDownDrawer />
       <Toaster richColors position="bottom-right" />
     </>
+  );
+}
+
+/**
+ * Loading state component that shows skeleton cards and a clear loading message
+ */
+function LoadingDashboard() {
+  return (
+    <div className="space-y-4">
+      {/* Loading header */}
+      <div className="flex flex-col items-center justify-center py-8">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-600 border-t-transparent" />
+          <span className="text-lg font-medium text-zinc-700 dark:text-zinc-300">
+            Loading your financial data...
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Connecting to Xero and fetching the latest numbers
+        </p>
+      </div>
+
+      {/* Skeleton cards - mimics the real layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+        <SkeletonCard title="Cash Position" />
+        <SkeletonCard title="Receivables" />
+        <div className="sm:col-span-2 md:col-span-1">
+          <SkeletonCard title="Payables" />
+        </div>
+      </div>
+
+      {/* AI CFO skeleton */}
+      <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="h-5 w-5 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse" />
+          <div className="h-5 w-24 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse" />
+        </div>
+        <div className="space-y-2">
+          <div className="h-4 bg-zinc-100 dark:bg-zinc-800 rounded animate-pulse w-full" />
+          <div className="h-4 bg-zinc-100 dark:bg-zinc-800 rounded animate-pulse w-5/6" />
+          <div className="h-4 bg-zinc-100 dark:bg-zinc-800 rounded animate-pulse w-4/6" />
+        </div>
+      </div>
+
+      {/* More skeleton rows */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <SkeletonCard title="Pipeline" small />
+        <SkeletonCard title="Risks" small />
+        <div className="sm:col-span-2 lg:col-span-1">
+          <SkeletonCard title="Transition" small />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+        <SkeletonCard title="Runway" />
+        <SkeletonCard title="Revenue History" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Skeleton card component for loading state
+ */
+function SkeletonCard({ title, small = false }) {
+  return (
+    <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 h-full">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse" />
+          <span className="text-sm font-medium text-muted-foreground">{title}</span>
+        </div>
+        <div className="h-5 w-12 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse" />
+      </div>
+
+      {/* Main value skeleton */}
+      <div className={`${small ? 'h-7' : 'h-9'} w-32 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse mb-3`} />
+
+      {/* Sparkline skeleton */}
+      {!small && (
+        <div className="h-8 w-full bg-zinc-100 dark:bg-zinc-800 rounded animate-pulse mb-3" />
+      )}
+
+      {/* Detail rows skeleton */}
+      <div className="space-y-2 mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+        <div className="flex justify-between">
+          <div className="h-3 w-20 bg-zinc-100 dark:bg-zinc-800 rounded animate-pulse" />
+          <div className="h-3 w-16 bg-zinc-100 dark:bg-zinc-800 rounded animate-pulse" />
+        </div>
+        <div className="flex justify-between">
+          <div className="h-3 w-24 bg-zinc-100 dark:bg-zinc-800 rounded animate-pulse" />
+          <div className="h-3 w-14 bg-zinc-100 dark:bg-zinc-800 rounded animate-pulse" />
+        </div>
+      </div>
+    </div>
   );
 }
 
