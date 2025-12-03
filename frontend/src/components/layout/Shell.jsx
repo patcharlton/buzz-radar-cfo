@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   RefreshCw,
@@ -11,10 +11,12 @@ import {
   Menu,
   X,
   History,
-  Loader2
+  Loader2,
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import api from '@/services/api';
@@ -33,24 +35,69 @@ export function Shell({
   const [darkMode, setDarkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [backfilling, setBackfilling] = useState(false);
+  const [backfillProgress, setBackfillProgress] = useState(0);
+  const [backfillElapsed, setBackfillElapsed] = useState(0);
+  const progressIntervalRef = useRef(null);
+
+  const TOTAL_MONTHS = 60;
+  const SECONDS_PER_MONTH = 1.1;
+  const ESTIMATED_TOTAL_SECONDS = TOTAL_MONTHS * SECONDS_PER_MONTH;
 
   const handleBackfill = async () => {
     setBackfilling(true);
+    setBackfillProgress(0);
+    setBackfillElapsed(0);
+
+    // Start progress simulation
+    const startTime = Date.now();
+    progressIntervalRef.current = setInterval(() => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      setBackfillElapsed(Math.floor(elapsed));
+      // Progress based on elapsed time, max 95% until complete
+      const estimatedProgress = Math.min((elapsed / ESTIMATED_TOTAL_SECONDS) * 100, 95);
+      setBackfillProgress(estimatedProgress);
+    }, 500);
+
     try {
-      const result = await api.triggerBackfill(60);
+      const result = await api.triggerBackfill(TOTAL_MONTHS);
+      clearInterval(progressIntervalRef.current);
+
       if (result.success) {
+        setBackfillProgress(100);
         toast.success(`Loaded ${result.result?.success || 0} months of history`);
-        // Reload the page to fetch new trends
-        window.location.reload();
+        // Short delay to show 100% before reload
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
       } else {
         toast.error(result.error || 'Failed to load history');
+        setBackfilling(false);
       }
     } catch (err) {
+      clearInterval(progressIntervalRef.current);
       toast.error('Failed to load history: ' + (err.message || 'Unknown error'));
-    } finally {
       setBackfilling(false);
     }
   };
+
+  // Warn user before navigating away during backfill
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (backfilling) {
+        e.preventDefault();
+        e.returnValue = 'History loading is in progress. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, [backfilling]);
 
   useEffect(() => {
     if (darkMode) {
@@ -359,6 +406,61 @@ export function Shell({
           </motion.div>
         )}
       </main>
+
+      {/* Backfill Progress Overlay */}
+      <AnimatePresence>
+        {backfilling && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl p-6 mx-4 max-w-md w-full"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30">
+                  <History className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    Loading Historical Data
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Fetching {TOTAL_MONTHS} months from Xero
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Progress value={backfillProgress} className="h-2" />
+
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {Math.round(backfillProgress)}% complete
+                  </span>
+                  <span className="text-muted-foreground font-mono">
+                    {backfillElapsed}s / ~{Math.round(ESTIMATED_TOTAL_SECONDS)}s
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-900">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    Please don't close or navigate away from this page until loading is complete.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
