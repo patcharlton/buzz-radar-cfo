@@ -108,8 +108,8 @@ export function DrillDownDrawer() {
         const dateFilters = getDateRangeFilters();
         const combinedFilters = { ...filters, ...dateFilters };
 
-        // Use historical data for longer date ranges (> 1 year or 'all')
-        const useHistorical = dateRange === 'all' || dateRange === '1825' || dateRange === '730';
+        // Always use historical data for receivables/payables - contains complete CSV import
+        // Xero API only returns recent data, historical import has full history
 
         switch (drillType) {
           case DRILL_TYPES.CASH:
@@ -121,34 +121,20 @@ export function DrillDownDrawer() {
             }
             break;
           case DRILL_TYPES.RECEIVABLES:
-            if (useHistorical) {
-              result = await api.drillHistoricalReceivables({ ...combinedFilters, status: statusFilter === 'ALL' ? null : statusFilter, page });
-            } else {
-              result = await api.drillReceivables({ ...combinedFilters, status: statusFilter === 'ALL' ? null : statusFilter, page });
-            }
+            // Always use historical data - contains complete invoice history
+            result = await api.drillHistoricalReceivables({ ...combinedFilters, status: statusFilter === 'ALL' ? null : statusFilter, page });
             break;
           case DRILL_TYPES.RECEIVABLES_DETAIL:
-            // Check if this is a historical invoice (numeric ID vs UUID)
-            if (filters.invoiceId && !filters.invoiceId.includes('-')) {
-              result = await api.drillHistoricalInvoice(filters.invoiceId);
-            } else {
-              result = await api.drillReceivablesDetail(filters.invoiceId);
-            }
+            // Historical invoices have IDs like "hist_123"
+            result = await api.drillHistoricalInvoice(filters.invoiceId);
             break;
           case DRILL_TYPES.PAYABLES:
-            if (useHistorical) {
-              result = await api.drillHistoricalPayables({ ...combinedFilters, status: statusFilter === 'ALL' ? null : statusFilter, page });
-            } else {
-              result = await api.drillPayables({ ...combinedFilters, status: statusFilter === 'ALL' ? null : statusFilter, page });
-            }
+            // Always use historical data - contains complete bill history
+            result = await api.drillHistoricalPayables({ ...combinedFilters, status: statusFilter === 'ALL' ? null : statusFilter, page });
             break;
           case DRILL_TYPES.PAYABLES_DETAIL:
-            // Check if this is a historical invoice (numeric ID vs UUID)
-            if (filters.invoiceId && !filters.invoiceId.includes('-')) {
-              result = await api.drillHistoricalInvoice(filters.invoiceId);
-            } else {
-              result = await api.drillPayablesDetail(filters.invoiceId);
-            }
+            // Historical invoices have IDs like "hist_123"
+            result = await api.drillHistoricalInvoice(filters.invoiceId);
             break;
           case DRILL_TYPES.PNL:
             result = await api.drillPnl(combinedFilters);
