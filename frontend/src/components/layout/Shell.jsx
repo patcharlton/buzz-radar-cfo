@@ -12,7 +12,8 @@ import {
   X,
   History,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  Upload
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +21,7 @@ import { Progress } from '@/components/ui/progress';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import api from '@/services/api';
+import CsvUploadModal from '@/components/CsvUploadModal';
 
 export function Shell({
   children,
@@ -192,6 +194,9 @@ export function Shell({
                 </Button>
               )}
 
+              {/* Import CSV button */}
+              {isConnected && <CsvUploadModal />}
+
               {/* Disconnect button */}
               {isConnected && (
                 <Button
@@ -332,6 +337,13 @@ export function Shell({
                       )}
                       {backfilling ? 'Loading History...' : 'Load History'}
                     </button>
+                  )}
+
+                  {/* Import CSV - mobile */}
+                  {isConnected && (
+                    <div className="px-2 py-1">
+                      <CsvUploadModal />
+                    </div>
                   )}
 
                   {/* Disconnect */}
