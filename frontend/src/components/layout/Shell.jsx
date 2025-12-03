@@ -9,11 +9,15 @@ import {
   TrendingUp,
   LogOut,
   Menu,
-  X
+  X,
+  History,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
+import api from '@/services/api';
 
 export function Shell({
   children,
@@ -28,6 +32,25 @@ export function Shell({
 }) {
   const [darkMode, setDarkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
+
+  const handleBackfill = async () => {
+    setBackfilling(true);
+    try {
+      const result = await api.triggerBackfill(60);
+      if (result.success) {
+        toast.success(`Loaded ${result.result?.success || 0} months of history`);
+        // Reload the page to fetch new trends
+        window.location.reload();
+      } else {
+        toast.error(result.error || 'Failed to load history');
+      }
+    } catch (err) {
+      toast.error('Failed to load history: ' + (err.message || 'Unknown error'));
+    } finally {
+      setBackfilling(false);
+    }
+  };
 
   useEffect(() => {
     if (darkMode) {
@@ -100,6 +123,24 @@ export function Shell({
                 >
                   <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
                   {syncing ? 'Syncing...' : 'Sync'}
+                </Button>
+              )}
+
+              {/* Load History button */}
+              {isConnected && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBackfill}
+                  disabled={backfilling}
+                  className="gap-2"
+                >
+                  {backfilling ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <History className="h-4 w-4" />
+                  )}
+                  {backfilling ? 'Loading...' : 'Load History'}
                 </Button>
               )}
 
@@ -226,6 +267,25 @@ export function Shell({
                 )}
 
                 <div className="border-t border-zinc-100 dark:border-zinc-800 pt-2 space-y-1">
+                  {/* Load History */}
+                  {isConnected && (
+                    <button
+                      onClick={() => {
+                        handleBackfill();
+                        setMobileMenuOpen(false);
+                      }}
+                      disabled={backfilling}
+                      className="w-full flex items-center gap-2 px-2 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md disabled:opacity-50"
+                    >
+                      {backfilling ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <History className="h-4 w-4" />
+                      )}
+                      {backfilling ? 'Loading History...' : 'Load History'}
+                    </button>
+                  )}
+
                   {/* Disconnect */}
                   {isConnected && (
                     <button
