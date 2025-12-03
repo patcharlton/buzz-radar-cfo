@@ -51,6 +51,7 @@ export function DrillDownDrawer() {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [dateRange, setDateRange] = useState('90'); // days
+  const [statusFilter, setStatusFilter] = useState('AUTHORISED'); // For receivables/payables
 
   // Date range presets
   const getDateRangeFilters = useCallback(() => {
@@ -110,13 +111,13 @@ export function DrillDownDrawer() {
             result = await api.drillCash({ ...combinedFilters, page });
             break;
           case DRILL_TYPES.RECEIVABLES:
-            result = await api.drillReceivables({ ...combinedFilters, page });
+            result = await api.drillReceivables({ ...combinedFilters, status: statusFilter, page });
             break;
           case DRILL_TYPES.RECEIVABLES_DETAIL:
             result = await api.drillReceivablesDetail(filters.invoiceId);
             break;
           case DRILL_TYPES.PAYABLES:
-            result = await api.drillPayables({ ...combinedFilters, page });
+            result = await api.drillPayables({ ...combinedFilters, status: statusFilter, page });
             break;
           case DRILL_TYPES.PAYABLES_DETAIL:
             result = await api.drillPayablesDetail(filters.invoiceId);
@@ -144,12 +145,12 @@ export function DrillDownDrawer() {
     };
 
     fetchData();
-  }, [isOpen, drillType, filters, page, dateRange, getDateRangeFilters]);
+  }, [isOpen, drillType, filters, page, dateRange, statusFilter, getDateRangeFilters]);
 
   // Reset page when filters or date range change
   useEffect(() => {
     setPage(1);
-  }, [filters, dateRange]);
+  }, [filters, dateRange, statusFilter]);
 
   // Filter data client-side by search query
   const filteredData = useMemo(() => {
@@ -353,6 +354,19 @@ export function DrillDownDrawer() {
                     className="pl-9"
                   />
                 </div>
+                {/* Status filter for Receivables/Payables */}
+                {[DRILL_TYPES.RECEIVABLES, DRILL_TYPES.PAYABLES].includes(drillType) && (
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[130px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AUTHORISED">Outstanding</SelectItem>
+                      <SelectItem value="PAID">Paid</SelectItem>
+                      <SelectItem value="">All statuses</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
                 {/* Date range filter - show for CASH, RECEIVABLES, PAYABLES, PNL */}
                 {[DRILL_TYPES.CASH, DRILL_TYPES.RECEIVABLES, DRILL_TYPES.PAYABLES, DRILL_TYPES.PNL, DRILL_TYPES.PNL_ACCOUNT].includes(drillType) && (
                   <Select value={dateRange} onValueChange={setDateRange}>

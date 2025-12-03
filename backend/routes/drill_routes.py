@@ -27,9 +27,18 @@ def require_xero_connection(f):
 
 
 def parse_date(date_str, default=None):
-    """Parse ISO date string to date object."""
+    """Parse ISO date string to date object.
+
+    Special values:
+        'all' - Returns a date 10 years in the past for max history
+    """
     if not date_str:
         return default
+
+    # Handle 'all' for fetching all history
+    if isinstance(date_str, str) and date_str.lower() == 'all':
+        return date(date.today().year - 10, 1, 1)
+
     try:
         return datetime.strptime(date_str[:10], '%Y-%m-%d').date()
     except (ValueError, TypeError):
@@ -55,18 +64,7 @@ def drill_cash():
     """
     try:
         today = date.today()
-        from_date_str = request.args.get('from_date', '')
-
-        # Support 'all' for fetching all historical data (go back 10 years)
-        if from_date_str.lower() == 'all' or from_date_str == '':
-            # If explicitly 'all' or empty, check if they want all history
-            if from_date_str.lower() == 'all':
-                from_date = date(today.year - 10, 1, 1)  # 10 years back
-            else:
-                from_date = today - timedelta(days=90)  # Default 90 days
-        else:
-            from_date = parse_date(from_date_str, today - timedelta(days=90))
-
+        from_date = parse_date(request.args.get('from_date'), today - timedelta(days=90))
         to_date = parse_date(request.args.get('to_date'), today)
         account_id = request.args.get('account_id')
         page = request.args.get('page', 1, type=int)
