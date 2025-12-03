@@ -192,6 +192,7 @@ function AppContent({
         onDisconnect={() => {}}
         onLogout={onLogout}
         syncing={false}
+        loading={true}
       >
         <LoadingDashboard />
       </Shell>

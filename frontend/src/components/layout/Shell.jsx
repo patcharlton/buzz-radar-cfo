@@ -30,7 +30,8 @@ export function Shell({
   onConnect,
   onDisconnect,
   onLogout,
-  syncing
+  syncing,
+  loading = false,
 }) {
   const [darkMode, setDarkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -369,7 +370,7 @@ export function Shell({
 
       {/* Main Content */}
       <main className="container mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-7xl">
-        {!isConnected ? (
+        {!isConnected && !loading ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
