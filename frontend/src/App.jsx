@@ -10,6 +10,7 @@ import { PipelineSummary } from '@/components/dashboard/PipelineSummary';
 import { RisksSummary } from '@/components/dashboard/RisksSummary';
 import { TransitionProgress } from '@/components/dashboard/TransitionProgress';
 import { RunwayCard } from '@/components/dashboard/RunwayCard';
+import { RevenueHistoryCard } from '@/components/dashboard/RevenueHistoryCard';
 import { CashFlowChart } from '@/components/charts/CashFlowChart';
 import CashForecast from '@/components/CashForecast';
 import Anomalies from '@/components/Anomalies';
@@ -211,8 +212,11 @@ function App() {
               </div>
             </div>
 
-            {/* Cash Runway Card */}
-            <RunwayCard data={runwayData} loading={!dashboardData} />
+            {/* Runway and Revenue History Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 items-stretch">
+              <RunwayCard data={runwayData} loading={!dashboardData} />
+              <RevenueHistoryCard trends={historyTrends} loading={!dashboardData} />
+            </div>
 
             {/* 3-Month Financial Projection */}
             <ProjectionWidget />
