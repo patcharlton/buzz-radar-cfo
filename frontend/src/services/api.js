@@ -655,7 +655,160 @@ export const api = {
   },
 
   // =============================================================================
-  // CSV UPLOAD
+  // BANK TRANSACTION UPLOAD (Excel)
+  // =============================================================================
+
+  /**
+   * Preview a bank transactions Excel file without importing
+   */
+  async previewBankTransactions(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE}/api/upload/bank-transactions/preview`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+    return response.json();
+  },
+
+  /**
+   * Upload and import bank transactions from Excel
+   */
+  async uploadBankTransactions(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE}/api/upload/bank-transactions`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+    return response.json();
+  },
+
+  /**
+   * Get bank transaction import stats
+   */
+  async getBankTransactionStats() {
+    const response = await fetch(`${API_BASE}/api/upload/bank-transactions/stats`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Clear all historical data (bank transactions, snapshots, invoices)
+   */
+  async clearAllHistoricalData(confirm = true) {
+    const response = await fetch(`${API_BASE}/api/upload/clear-all`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ confirm }),
+    });
+    return response.json();
+  },
+
+  /**
+   * Recalculate monthly cash snapshots
+   */
+  async recalculateSnapshots() {
+    const response = await fetch(`${API_BASE}/api/upload/recalculate-snapshots`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  // =============================================================================
+  // BANK TRANSACTION HISTORY ENDPOINTS
+  // =============================================================================
+
+  /**
+   * Get monthly cash position history from bank transactions
+   */
+  async getCashPositionHistory(months = 60) {
+    const response = await fetch(`${API_BASE}/api/history/cash-position?months=${months}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get simplified cash trend for sparklines
+   */
+  async getCashTrend(months = 12) {
+    const response = await fetch(`${API_BASE}/api/history/cash-trend?months=${months}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get monthly payroll history
+   */
+  async getPayrollHistory(months = 12) {
+    const response = await fetch(`${API_BASE}/api/history/payroll?months=${months}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Drill down into bank transactions
+   */
+  async drillBankTransactions({ fromDate, toDate, account, sourceType, search, page = 1, pageSize = 50 } = {}) {
+    const params = new URLSearchParams();
+    if (fromDate) params.set('from_date', fromDate);
+    if (toDate) params.set('to_date', toDate);
+    if (account) params.set('account', account);
+    if (sourceType) params.set('source_type', sourceType);
+    if (search) params.set('search', search);
+    params.set('page', page);
+    params.set('page_size', pageSize);
+
+    const response = await fetch(`${API_BASE}/api/drill/bank-transactions?${params}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get list of bank accounts from imported transactions
+   */
+  async getBankAccounts() {
+    const response = await fetch(`${API_BASE}/api/drill/bank-transactions/accounts`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get list of transaction source types
+   */
+  async getSourceTypes() {
+    const response = await fetch(`${API_BASE}/api/drill/bank-transactions/source-types`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get runway based on historical cash burn
+   */
+  async getRunwayHistorical() {
+    const response = await fetch(`${API_BASE}/api/metrics/runway-historical`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  // =============================================================================
+  // CSV UPLOAD (Legacy - for invoice imports)
   // =============================================================================
 
   /**

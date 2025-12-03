@@ -1,50 +1,33 @@
 """
-CSV Upload endpoints for importing historical data.
+File Upload endpoints for importing historical data.
 
-Allows direct upload of Xero CSV exports through the web UI.
+Supports:
+- Excel bank transaction exports from Xero
+- CSV invoice/bill exports (legacy)
 """
-import csv
 import io
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal, InvalidOperation
-from collections import defaultdict
+from calendar import monthrange
 
 from flask import Blueprint, jsonify, request
+import pandas as pd
 
-from database import db, HistoricalInvoice, HistoricalLineItem
+from database import db, HistoricalInvoice, HistoricalLineItem, BankTransaction, MonthlyCashSnapshot
 
 upload_bp = Blueprint('upload', __name__)
 
 # Maximum file size (10MB)
 MAX_FILE_SIZE = 10 * 1024 * 1024
 
-# Currency conversion rates to GBP (approximate historical rates)
-CURRENCY_RATES = {
-    'GBP': Decimal('1.0'),
-    'EUR': Decimal('0.85'),
-    'USD': Decimal('0.79'),
-}
-
-
-def parse_uk_date(date_str):
-    """Parse UK date format (DD/MM/YYYY) to date object."""
-    if not date_str or not date_str.strip():
-        return None
-    try:
-        return datetime.strptime(date_str.strip(), '%d/%m/%Y').date()
-    except ValueError:
-        # Try alternative formats
-        for fmt in ['%Y-%m-%d', '%d-%m-%Y', '%m/%d/%Y']:
-            try:
-                return datetime.strptime(date_str.strip(), fmt).date()
-            except ValueError:
-                continue
-        return None
-
 
 def parse_decimal(value):
-    """Parse string to Decimal, handling empty strings and commas."""
-    if not value or not str(value).strip():
+    """Parse value to Decimal, handling empty strings and various formats."""
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return Decimal('0')
+    if isinstance(value, (int, float)):
+        return Decimal(str(value))
+    if not str(value).strip():
         return Decimal('0')
     try:
         cleaned = str(value).replace(',', '').strip()
@@ -53,198 +36,279 @@ def parse_decimal(value):
         return Decimal('0')
 
 
-def determine_invoice_type(row_type):
-    """Determine invoice type from Xero Type field."""
-    row_type = (row_type or '').lower().strip()
-
-    if 'bill credit note' in row_type:
-        return 'payable', True
-    elif 'sales credit note' in row_type:
-        return 'receivable', True
-    elif 'sales overpayment' in row_type:
-        return 'overpayment', False
-    elif 'bill' in row_type:
-        return 'payable', False
-    elif 'sales invoice' in row_type or 'invoice' in row_type:
-        return 'receivable', False
-    else:
-        return 'receivable', False
-
-
-def calculate_gbp_total(total, currency):
-    """Convert amount to GBP equivalent."""
-    rate = CURRENCY_RATES.get(currency, Decimal('1.0'))
-    return total * rate
-
-
-def process_csv_content(content, default_type='receivable'):
+def process_bank_transactions_excel(file_content):
     """
-    Process CSV content and import into database.
+    Process Xero Account Transactions Excel export.
 
-    Args:
-        content: CSV file content as string
-        default_type: 'receivable' or 'payable'
+    Expected format:
+    - Row 1-3: Headers (skip)
+    - Row 4: Column headers
+    - Data rows contain either:
+      - Account header (Source column empty, Date is account name)
+      - Transaction row (Source has value like "Spend Money")
+      - Summary rows ("Opening Balance", "Closing Balance", etc.) - skip
+
+    Columns after cleanup:
+    - Date, Source, Description, Reference, Currency
+    - Debit (source), Credit (source), Debit (GBP), Credit (GBP), Running Balance
 
     Returns:
         dict with import statistics
     """
     stats = {
         'total_rows': 0,
-        'invoices_created': 0,
-        'invoices_updated': 0,
-        'invoices_skipped': 0,
-        'line_items_created': 0,
-        'credit_notes': 0,
+        'transactions_created': 0,
+        'transactions_skipped': 0,
+        'accounts_found': [],
+        'date_range': {'earliest': None, 'latest': None},
         'errors': [],
     }
 
     try:
-        # Parse CSV
-        reader = csv.DictReader(io.StringIO(content))
-        rows = list(reader)
-        stats['total_rows'] = len(rows)
+        # Read Excel, skip first 3 rows (headers)
+        df = pd.read_excel(io.BytesIO(file_content), skiprows=3)
 
-        if not rows:
-            stats['errors'].append('CSV file is empty')
+        # Rename columns to standard names
+        expected_cols = ['Date', 'Source', 'Description', 'Reference', 'Currency',
+                        'Debit_Source', 'Credit_Source', 'Debit_GBP', 'Credit_GBP', 'Running_Balance']
+
+        if len(df.columns) >= 10:
+            df.columns = expected_cols[:len(df.columns)]
+        else:
+            stats['errors'].append(f'Expected at least 10 columns, found {len(df.columns)}')
             return stats
 
-        # Check for required columns
-        required_cols = ['InvoiceNumber', 'InvoiceDate']
-        first_row = rows[0]
-        missing_cols = [col for col in required_cols if col not in first_row]
-        if missing_cols:
-            stats['errors'].append(f'Missing required columns: {", ".join(missing_cols)}')
-            return stats
+        stats['total_rows'] = len(df)
 
-    except Exception as e:
-        stats['errors'].append(f'Failed to parse CSV: {str(e)}')
-        return stats
+        # Clear existing bank transactions before import
+        BankTransaction.query.delete()
+        db.session.flush()
 
-    # Group rows by invoice number
-    grouped = defaultdict(list)
-    for row in rows:
-        invoice_number = row.get('InvoiceNumber', '').strip()
-        if invoice_number:
-            grouped[invoice_number].append(row)
+        transactions = []
+        current_account = None
 
-    # Process each invoice
-    for invoice_number, invoice_rows in grouped.items():
-        try:
-            first_row = invoice_rows[0]
+        for idx, row in df.iterrows():
+            date_val = row.get('Date')
+            source = row.get('Source')
 
-            # Determine type from row data
-            row_type = first_row.get('Type', '')
-            invoice_type, is_credit_note = determine_invoice_type(row_type)
-
-            if is_credit_note:
-                stats['credit_notes'] += 1
-
-            # Parse invoice data
-            invoice_date = parse_uk_date(first_row.get('InvoiceDate'))
-            if not invoice_date:
-                stats['errors'].append(f'No valid date for invoice {invoice_number}')
-                stats['invoices_skipped'] += 1
+            # Skip header row if present
+            if date_val == 'Date':
                 continue
 
-            due_date = parse_uk_date(first_row.get('DueDate'))
-            total = parse_decimal(first_row.get('Total', 0))
-            tax_total = parse_decimal(first_row.get('TaxTotal', 0))
-            amount_paid = parse_decimal(first_row.get('InvoiceAmountPaid', 0))
-            amount_due = parse_decimal(first_row.get('InvoiceAmountDue', 0))
-            currency = first_row.get('Currency', 'GBP').strip().upper()
-            status = first_row.get('Status', '').strip()
-            contact_name = first_row.get('ContactName', '').strip()
+            # Account header detection: Source is empty, Date is a string (account name)
+            if pd.isna(source) and pd.notna(date_val):
+                if isinstance(date_val, str):
+                    # Skip summary rows
+                    if date_val in ['Opening Balance', 'Closing Balance', 'Movement'] or str(date_val).startswith('Total'):
+                        continue
+                    # This is an account header
+                    current_account = date_val.strip()
+                    if current_account not in stats['accounts_found']:
+                        stats['accounts_found'].append(current_account)
+                continue
 
-            gbp_total = calculate_gbp_total(total, currency)
+            # Skip rows without a source type
+            if pd.isna(source) or source == 'Source':
+                continue
 
-            # Check for existing invoice (upsert)
-            existing = HistoricalInvoice.query.filter_by(
-                invoice_number=invoice_number,
-                invoice_type=invoice_type
-            ).first()
+            # Parse transaction date
+            tx_date = None
+            if isinstance(date_val, str):
+                # Try various date formats
+                for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%m/%d/%Y']:
+                    try:
+                        tx_date = datetime.strptime(date_val.strip(), fmt).date()
+                        break
+                    except ValueError:
+                        continue
+            elif isinstance(date_val, datetime):
+                tx_date = date_val.date()
+            elif isinstance(date_val, date):
+                tx_date = date_val
+            elif pd.notna(date_val):
+                try:
+                    tx_date = pd.to_datetime(date_val).date()
+                except Exception:
+                    pass
 
-            if existing:
-                existing.contact_name = contact_name
-                existing.invoice_date = invoice_date
-                existing.due_date = due_date
-                existing.total = total
-                existing.tax_total = tax_total
-                existing.amount_paid = amount_paid
-                existing.amount_due = amount_due
-                existing.currency = currency
-                existing.gbp_total = gbp_total
-                existing.status = status
-                existing.is_credit_note = is_credit_note
+            if not tx_date:
+                stats['transactions_skipped'] += 1
+                continue
 
-                # Delete existing line items
-                HistoricalLineItem.query.filter_by(invoice_id=existing.id).delete()
-                invoice = existing
-                stats['invoices_updated'] += 1
-            else:
-                invoice = HistoricalInvoice(
-                    invoice_number=invoice_number,
-                    invoice_type=invoice_type,
-                    is_credit_note=is_credit_note,
-                    contact_name=contact_name,
-                    invoice_date=invoice_date,
-                    due_date=due_date,
-                    total=total,
-                    tax_total=tax_total,
-                    amount_paid=amount_paid,
-                    amount_due=amount_due,
-                    currency=currency,
-                    gbp_total=gbp_total,
-                    status=status,
-                    source='csv_import',
-                )
-                db.session.add(invoice)
-                stats['invoices_created'] += 1
+            if not current_account:
+                stats['errors'].append(f'Row {idx}: Transaction without account header')
+                stats['transactions_skipped'] += 1
+                continue
 
-            db.session.flush()
+            # Parse amounts
+            debit_gbp = parse_decimal(row.get('Debit_GBP'))
+            credit_gbp = parse_decimal(row.get('Credit_GBP'))
 
-            # Create line items
-            for row in invoice_rows:
-                description = row.get('Description', '').strip()
-                quantity = parse_decimal(row.get('Quantity', 1))
-                unit_amount = parse_decimal(row.get('UnitAmount', 0))
-                line_amount = parse_decimal(row.get('LineAmount', 0))
-                account_code = row.get('AccountCode', '').strip()
-                tax_type = row.get('TaxType', '').strip()
+            # Create transaction
+            transaction = BankTransaction(
+                transaction_date=tx_date,
+                bank_account=current_account,
+                source_type=str(source).strip(),
+                description=str(row.get('Description', '')).strip() if pd.notna(row.get('Description')) else None,
+                reference=str(row.get('Reference', '')).strip() if pd.notna(row.get('Reference')) else None,
+                currency=str(row.get('Currency', 'GBP')).strip() if pd.notna(row.get('Currency')) else 'GBP',
+                debit_gbp=debit_gbp,
+                credit_gbp=credit_gbp,
+            )
+            transactions.append(transaction)
 
-                if description or line_amount:
-                    line_item = HistoricalLineItem(
-                        invoice_id=invoice.id,
-                        description=description,
-                        quantity=quantity,
-                        unit_amount=unit_amount,
-                        line_amount=line_amount,
-                        account_code=account_code,
-                        tax_type=tax_type,
-                    )
-                    db.session.add(line_item)
-                    stats['line_items_created'] += 1
+            # Track date range
+            if stats['date_range']['earliest'] is None or tx_date < stats['date_range']['earliest']:
+                stats['date_range']['earliest'] = tx_date
+            if stats['date_range']['latest'] is None or tx_date > stats['date_range']['latest']:
+                stats['date_range']['latest'] = tx_date
 
-        except Exception as e:
-            stats['errors'].append(f'Error processing invoice {invoice_number}: {str(e)}')
-            stats['invoices_skipped'] += 1
-
-    try:
+        # Bulk insert transactions
+        db.session.bulk_save_objects(transactions)
         db.session.commit()
+
+        stats['transactions_created'] = len(transactions)
+
+        # Convert dates to strings for JSON
+        if stats['date_range']['earliest']:
+            stats['date_range']['earliest'] = stats['date_range']['earliest'].isoformat()
+        if stats['date_range']['latest']:
+            stats['date_range']['latest'] = stats['date_range']['latest'].isoformat()
+
     except Exception as e:
         db.session.rollback()
-        stats['errors'].append(f'Database error: {str(e)}')
+        stats['errors'].append(f'Failed to process Excel file: {str(e)}')
 
     return stats
 
 
-@upload_bp.route('/api/upload/csv', methods=['POST'])
-def upload_csv():
+def calculate_monthly_cash_snapshots():
     """
-    Upload a CSV file for import.
+    Calculate monthly cash snapshots from bank transactions.
+
+    For each month with transactions:
+    - Sum all debit_gbp (money in)
+    - Sum all credit_gbp (money out)
+    - Calculate running balance from start
+    - Extract WAGES and HMRC totals
+
+    Returns:
+        dict with calculation stats
+    """
+    from sqlalchemy import func, extract
+
+    stats = {
+        'months_calculated': 0,
+        'errors': [],
+    }
+
+    try:
+        # Clear existing snapshots
+        MonthlyCashSnapshot.query.delete()
+        db.session.flush()
+
+        # Get date range from transactions
+        date_range = db.session.query(
+            func.min(BankTransaction.transaction_date),
+            func.max(BankTransaction.transaction_date)
+        ).first()
+
+        if not date_range[0] or not date_range[1]:
+            stats['errors'].append('No transactions found')
+            return stats
+
+        start_date = date_range[0]
+        end_date = date_range[1]
+
+        # Initialize running balance (assume 0 at start, or calculate from Opening Balance if available)
+        running_balance = Decimal('0')
+
+        # Iterate through each month
+        current_year = start_date.year
+        current_month = start_date.month
+
+        while date(current_year, current_month, 1) <= end_date:
+            # Get last day of month
+            last_day = monthrange(current_year, current_month)[1]
+            month_start = date(current_year, current_month, 1)
+            month_end = date(current_year, current_month, last_day)
+
+            # Sum debits and credits for the month
+            totals = db.session.query(
+                func.coalesce(func.sum(BankTransaction.debit_gbp), 0).label('total_in'),
+                func.coalesce(func.sum(BankTransaction.credit_gbp), 0).label('total_out')
+            ).filter(
+                BankTransaction.transaction_date >= month_start,
+                BankTransaction.transaction_date <= month_end
+            ).first()
+
+            total_in = Decimal(str(totals.total_in))
+            total_out = Decimal(str(totals.total_out))
+
+            # Get WAGES payments (credit = money out, description = 'WAGES')
+            wages_result = db.session.query(
+                func.coalesce(func.sum(BankTransaction.credit_gbp), 0)
+            ).filter(
+                BankTransaction.transaction_date >= month_start,
+                BankTransaction.transaction_date <= month_end,
+                BankTransaction.description == 'WAGES'
+            ).scalar()
+            wages_paid = Decimal(str(wages_result))
+
+            # Get HMRC payments
+            hmrc_result = db.session.query(
+                func.coalesce(func.sum(BankTransaction.credit_gbp), 0)
+            ).filter(
+                BankTransaction.transaction_date >= month_start,
+                BankTransaction.transaction_date <= month_end,
+                BankTransaction.description == 'HMRC'
+            ).scalar()
+            hmrc_paid = Decimal(str(hmrc_result))
+
+            # Calculate closing balance
+            opening_balance = running_balance
+            closing_balance = opening_balance + total_in - total_out
+
+            # Only create snapshot if there's activity or a balance
+            if total_in > 0 or total_out > 0 or opening_balance != 0:
+                snapshot = MonthlyCashSnapshot(
+                    snapshot_date=month_end,
+                    opening_balance=opening_balance,
+                    total_in=total_in,
+                    total_out=total_out,
+                    closing_balance=closing_balance,
+                    wages_paid=wages_paid,
+                    hmrc_paid=hmrc_paid,
+                )
+                db.session.add(snapshot)
+                stats['months_calculated'] += 1
+
+            # Update running balance for next month
+            running_balance = closing_balance
+
+            # Move to next month
+            if current_month == 12:
+                current_month = 1
+                current_year += 1
+            else:
+                current_month += 1
+
+        db.session.commit()
+
+    except Exception as e:
+        db.session.rollback()
+        stats['errors'].append(f'Failed to calculate snapshots: {str(e)}')
+
+    return stats
+
+
+@upload_bp.route('/api/upload/bank-transactions', methods=['POST'])
+def upload_bank_transactions():
+    """
+    Upload an Excel file with bank transactions.
 
     Form data:
-        file: The CSV file
-        type: 'invoices' or 'bills' (determines default invoice type)
+        file: The Excel file (.xlsx)
     """
     try:
         if 'file' not in request.files:
@@ -261,16 +325,16 @@ def upload_csv():
                 'error': 'No file selected'
             }), 400
 
-        if not file.filename.lower().endswith('.csv'):
+        if not file.filename.lower().endswith(('.xlsx', '.xls')):
             return jsonify({
                 'success': False,
-                'error': 'File must be a CSV'
+                'error': 'File must be an Excel file (.xlsx or .xls)'
             }), 400
 
         # Check file size
-        file.seek(0, 2)  # Seek to end
+        file.seek(0, 2)
         size = file.tell()
-        file.seek(0)  # Seek back to start
+        file.seek(0)
 
         if size > MAX_FILE_SIZE:
             return jsonify({
@@ -279,38 +343,36 @@ def upload_csv():
             }), 400
 
         # Read file content
-        try:
-            content = file.read().decode('utf-8-sig')  # Handle BOM
-        except UnicodeDecodeError:
-            try:
-                file.seek(0)
-                content = file.read().decode('latin-1')
-            except Exception as e:
-                return jsonify({
-                    'success': False,
-                    'error': f'Failed to read file: {str(e)}'
-                }), 400
+        content = file.read()
 
-        # Get import type
-        import_type = request.form.get('type', 'invoices')
-        default_type = 'receivable' if import_type == 'invoices' else 'payable'
+        # Process the Excel file
+        import_stats = process_bank_transactions_excel(content)
 
-        # Process the CSV
-        stats = process_csv_content(content, default_type)
+        if import_stats['errors']:
+            return jsonify({
+                'success': False,
+                'error': import_stats['errors'][0],
+                'stats': import_stats
+            }), 400
 
-        # Get updated totals
-        from sqlalchemy import func
-        receivables_count = HistoricalInvoice.query.filter_by(invoice_type='receivable').count()
-        payables_count = HistoricalInvoice.query.filter_by(invoice_type='payable').count()
+        # Calculate monthly snapshots
+        snapshot_stats = calculate_monthly_cash_snapshots()
+
+        # Get total counts
+        transaction_count = BankTransaction.query.count()
+        snapshot_count = MonthlyCashSnapshot.query.count()
 
         return jsonify({
             'success': True,
-            'stats': stats,
-            'totals': {
-                'receivables': receivables_count,
-                'payables': payables_count,
+            'stats': {
+                **import_stats,
+                'snapshots_calculated': snapshot_stats['months_calculated'],
             },
-            'message': f"Imported {stats['invoices_created']} new invoices, updated {stats['invoices_updated']}"
+            'totals': {
+                'transactions': transaction_count,
+                'monthly_snapshots': snapshot_count,
+            },
+            'message': f"Imported {import_stats['transactions_created']} transactions from {len(import_stats['accounts_found'])} accounts, calculated {snapshot_stats['months_calculated']} monthly snapshots"
         })
 
     except Exception as e:
@@ -320,12 +382,10 @@ def upload_csv():
         }), 500
 
 
-@upload_bp.route('/api/upload/preview', methods=['POST'])
-def preview_csv():
+@upload_bp.route('/api/upload/bank-transactions/preview', methods=['POST'])
+def preview_bank_transactions():
     """
-    Preview a CSV file without importing.
-
-    Returns sample rows and validation info.
+    Preview an Excel file with bank transactions without importing.
     """
     try:
         if 'file' not in request.files:
@@ -336,46 +396,53 @@ def preview_csv():
 
         file = request.files['file']
 
-        if not file.filename.lower().endswith('.csv'):
+        if not file.filename.lower().endswith(('.xlsx', '.xls')):
             return jsonify({
                 'success': False,
-                'error': 'File must be a CSV'
+                'error': 'File must be an Excel file (.xlsx or .xls)'
             }), 400
 
         # Read file content
-        try:
-            content = file.read().decode('utf-8-sig')
-        except UnicodeDecodeError:
-            file.seek(0)
-            content = file.read().decode('latin-1')
+        content = file.read()
+        df = pd.read_excel(io.BytesIO(content), skiprows=3)
 
-        # Parse CSV
-        reader = csv.DictReader(io.StringIO(content))
-        rows = list(reader)
+        # Rename columns
+        expected_cols = ['Date', 'Source', 'Description', 'Reference', 'Currency',
+                        'Debit_Source', 'Credit_Source', 'Debit_GBP', 'Credit_GBP', 'Running_Balance']
 
-        if not rows:
-            return jsonify({
-                'success': False,
-                'error': 'CSV file is empty'
-            }), 400
+        if len(df.columns) >= 10:
+            df.columns = expected_cols[:len(df.columns)]
 
-        # Get columns
-        columns = list(rows[0].keys())
+        # Count transactions (rows with Source value)
+        transaction_rows = df[df['Source'].notna() & (df['Source'] != 'Source')]
 
-        # Check for required columns
-        required_cols = ['InvoiceNumber', 'InvoiceDate', 'Total']
-        missing_cols = [col for col in required_cols if col not in columns]
-
-        # Count unique invoices
-        invoice_numbers = set(row.get('InvoiceNumber', '') for row in rows)
-        invoice_numbers.discard('')
+        # Find accounts
+        accounts = []
+        for idx, row in df.iterrows():
+            date_val = row.get('Date')
+            source = row.get('Source')
+            if pd.isna(source) and pd.notna(date_val) and isinstance(date_val, str):
+                if date_val not in ['Opening Balance', 'Closing Balance', 'Movement', 'Date'] and not date_val.startswith('Total'):
+                    accounts.append(date_val)
 
         # Get date range
         dates = []
-        for row in rows:
-            d = parse_uk_date(row.get('InvoiceDate'))
-            if d:
-                dates.append(d)
+        for idx, row in df.iterrows():
+            date_val = row.get('Date')
+            source = row.get('Source')
+            if pd.notna(source) and source != 'Source':
+                try:
+                    if isinstance(date_val, (datetime, date)):
+                        dates.append(date_val if isinstance(date_val, date) else date_val.date())
+                    elif isinstance(date_val, str):
+                        for fmt in ['%Y-%m-%d', '%d/%m/%Y']:
+                            try:
+                                dates.append(datetime.strptime(date_val, fmt).date())
+                                break
+                            except ValueError:
+                                continue
+                except Exception:
+                    pass
 
         date_range = None
         if dates:
@@ -384,27 +451,29 @@ def preview_csv():
                 'latest': max(dates).isoformat(),
             }
 
-        # Get sample rows (first 5)
+        # Sample transactions
         sample_rows = []
-        for row in rows[:5]:
-            sample_rows.append({
-                'invoice_number': row.get('InvoiceNumber', ''),
-                'contact': row.get('ContactName', ''),
-                'date': row.get('InvoiceDate', ''),
-                'total': row.get('Total', ''),
-                'type': row.get('Type', ''),
-            })
+        count = 0
+        for idx, row in df.iterrows():
+            if pd.notna(row.get('Source')) and row.get('Source') != 'Source' and count < 5:
+                sample_rows.append({
+                    'date': str(row.get('Date', ''))[:10],
+                    'source': row.get('Source', ''),
+                    'description': str(row.get('Description', ''))[:50] if pd.notna(row.get('Description')) else '',
+                    'debit_gbp': float(row.get('Debit_GBP', 0)) if pd.notna(row.get('Debit_GBP')) else 0,
+                    'credit_gbp': float(row.get('Credit_GBP', 0)) if pd.notna(row.get('Credit_GBP')) else 0,
+                })
+                count += 1
 
         return jsonify({
             'success': True,
             'preview': {
-                'total_rows': len(rows),
-                'unique_invoices': len(invoice_numbers),
-                'columns': columns,
-                'missing_columns': missing_cols,
+                'total_rows': len(df),
+                'transaction_rows': len(transaction_rows),
+                'accounts': accounts,
                 'date_range': date_range,
                 'sample_rows': sample_rows,
-                'is_valid': len(missing_cols) == 0,
+                'columns': list(df.columns),
             }
         })
 
@@ -415,13 +484,74 @@ def preview_csv():
         }), 500
 
 
-@upload_bp.route('/api/upload/clear', methods=['POST'])
-def clear_historical_data():
+@upload_bp.route('/api/upload/bank-transactions/stats', methods=['GET'])
+def get_bank_transaction_stats():
+    """Get statistics about imported bank transactions."""
+    try:
+        from sqlalchemy import func
+
+        # Total transactions
+        transaction_count = BankTransaction.query.count()
+
+        # Date range
+        date_range = db.session.query(
+            func.min(BankTransaction.transaction_date),
+            func.max(BankTransaction.transaction_date)
+        ).first()
+
+        # Totals
+        totals = db.session.query(
+            func.sum(BankTransaction.debit_gbp).label('total_in'),
+            func.sum(BankTransaction.credit_gbp).label('total_out')
+        ).first()
+
+        # Accounts
+        accounts = db.session.query(
+            BankTransaction.bank_account,
+            func.count(BankTransaction.id).label('count')
+        ).group_by(BankTransaction.bank_account).all()
+
+        # Source types
+        source_types = db.session.query(
+            BankTransaction.source_type,
+            func.count(BankTransaction.id).label('count')
+        ).group_by(BankTransaction.source_type).all()
+
+        # Monthly snapshots
+        snapshot_count = MonthlyCashSnapshot.query.count()
+
+        return jsonify({
+            'success': True,
+            'stats': {
+                'transaction_count': transaction_count,
+                'snapshot_count': snapshot_count,
+                'date_range': {
+                    'earliest': date_range[0].isoformat() if date_range[0] else None,
+                    'latest': date_range[1].isoformat() if date_range[1] else None,
+                },
+                'totals': {
+                    'total_in': float(totals.total_in or 0),
+                    'total_out': float(totals.total_out or 0),
+                    'net': float((totals.total_in or 0) - (totals.total_out or 0)),
+                },
+                'accounts': [{'name': a.bank_account, 'count': a.count} for a in accounts],
+                'source_types': [{'name': s.source_type, 'count': s.count} for s in source_types],
+            }
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@upload_bp.route('/api/upload/clear-all', methods=['POST'])
+def clear_all_historical_data():
     """
-    Clear all historical data (for re-importing).
+    Clear ALL historical data (invoices AND bank transactions).
 
     Body:
-        type: 'all', 'receivables', or 'payables'
         confirm: Must be true to proceed
     """
     try:
@@ -433,37 +563,27 @@ def clear_historical_data():
                 'error': 'Must confirm deletion'
             }), 400
 
-        clear_type = data.get('type', 'all')
+        deleted = {
+            'invoices': 0,
+            'line_items': 0,
+            'bank_transactions': 0,
+            'cash_snapshots': 0,
+        }
 
-        deleted_invoices = 0
-        deleted_line_items = 0
+        # Clear bank transactions and snapshots
+        deleted['cash_snapshots'] = MonthlyCashSnapshot.query.delete()
+        deleted['bank_transactions'] = BankTransaction.query.delete()
 
-        if clear_type in ['all', 'receivables']:
-            # Get receivable invoice IDs
-            invoice_ids = [inv.id for inv in HistoricalInvoice.query.filter_by(invoice_type='receivable').all()]
-            if invoice_ids:
-                deleted_line_items += HistoricalLineItem.query.filter(
-                    HistoricalLineItem.invoice_id.in_(invoice_ids)
-                ).delete(synchronize_session=False)
-                deleted_invoices += HistoricalInvoice.query.filter_by(invoice_type='receivable').delete()
-
-        if clear_type in ['all', 'payables']:
-            invoice_ids = [inv.id for inv in HistoricalInvoice.query.filter_by(invoice_type='payable').all()]
-            if invoice_ids:
-                deleted_line_items += HistoricalLineItem.query.filter(
-                    HistoricalLineItem.invoice_id.in_(invoice_ids)
-                ).delete(synchronize_session=False)
-                deleted_invoices += HistoricalInvoice.query.filter_by(invoice_type='payable').delete()
+        # Clear invoices and line items
+        deleted['line_items'] = HistoricalLineItem.query.delete()
+        deleted['invoices'] = HistoricalInvoice.query.delete()
 
         db.session.commit()
 
         return jsonify({
             'success': True,
-            'deleted': {
-                'invoices': deleted_invoices,
-                'line_items': deleted_line_items,
-            },
-            'message': f'Deleted {deleted_invoices} invoices and {deleted_line_items} line items'
+            'deleted': deleted,
+            'message': f"Cleared {deleted['bank_transactions']} transactions, {deleted['cash_snapshots']} snapshots, {deleted['invoices']} invoices"
         })
 
     except Exception as e:
@@ -474,75 +594,19 @@ def clear_historical_data():
         }), 500
 
 
-@upload_bp.route('/api/upload/dedupe', methods=['POST'])
-def dedupe_historical_data():
-    """
-    Remove duplicate invoices, keeping only the most recent version.
-
-    Duplicates are identified by invoice_number + invoice_type.
-    """
+@upload_bp.route('/api/upload/recalculate-snapshots', methods=['POST'])
+def recalculate_snapshots():
+    """Recalculate monthly cash snapshots from existing bank transactions."""
     try:
-        from sqlalchemy import func
-
-        stats = {
-            'duplicates_found': 0,
-            'invoices_removed': 0,
-            'line_items_removed': 0,
-        }
-
-        # Find duplicate invoice_number + invoice_type combinations
-        duplicates = db.session.query(
-            HistoricalInvoice.invoice_number,
-            HistoricalInvoice.invoice_type,
-            func.count(HistoricalInvoice.id).label('count')
-        ).group_by(
-            HistoricalInvoice.invoice_number,
-            HistoricalInvoice.invoice_type
-        ).having(
-            func.count(HistoricalInvoice.id) > 1
-        ).all()
-
-        stats['duplicates_found'] = len(duplicates)
-
-        for invoice_number, invoice_type, count in duplicates:
-            # Get all invoices with this number/type, ordered by id (keep highest = most recent)
-            invoices = HistoricalInvoice.query.filter_by(
-                invoice_number=invoice_number,
-                invoice_type=invoice_type
-            ).order_by(HistoricalInvoice.id.desc()).all()
-
-            # Keep the first one (highest id), delete the rest
-            to_delete = invoices[1:]
-
-            for inv in to_delete:
-                # Delete line items first
-                deleted_items = HistoricalLineItem.query.filter_by(
-                    invoice_id=inv.id
-                ).delete()
-                stats['line_items_removed'] += deleted_items
-
-                # Delete the invoice
-                db.session.delete(inv)
-                stats['invoices_removed'] += 1
-
-        db.session.commit()
-
-        # Get updated counts
-        receivables_count = HistoricalInvoice.query.filter_by(invoice_type='receivable').count()
-        payables_count = HistoricalInvoice.query.filter_by(invoice_type='payable').count()
+        stats = calculate_monthly_cash_snapshots()
 
         return jsonify({
             'success': True,
             'stats': stats,
-            'totals': {
-                'receivables': receivables_count,
-                'payables': payables_count,
-            },
-            'message': f"Removed {stats['invoices_removed']} duplicate invoices"
+            'message': f"Calculated {stats['months_calculated']} monthly snapshots"
         })
 
     except Exception as e:
-        db.session.rollback()
         return jsonify({
             'success': False,
             'error': str(e)

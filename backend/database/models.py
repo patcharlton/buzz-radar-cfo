@@ -368,3 +368,81 @@ class HistoricalLineItem(db.Model):
             'account_code': self.account_code,
             'tax_type': self.tax_type,
         }
+
+
+class BankTransaction(db.Model):
+    """Store historical bank transactions imported from Xero exports."""
+
+    __tablename__ = 'bank_transactions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    transaction_date = db.Column(db.Date, nullable=False, index=True)
+    bank_account = db.Column(db.String(100), nullable=False, index=True)
+    source_type = db.Column(db.String(50), nullable=False, index=True)  # Spend Money, Receivable Payment, etc.
+    description = db.Column(db.Text)
+    reference = db.Column(db.String(100))
+    currency = db.Column(db.String(10), default='GBP')
+    debit_gbp = db.Column(db.Numeric(12, 2), default=0)   # Money IN
+    credit_gbp = db.Column(db.Numeric(12, 2), default=0)  # Money OUT
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def net_amount(self):
+        """Get net amount (positive = money in, negative = money out)."""
+        return float(self.debit_gbp or 0) - float(self.credit_gbp or 0)
+
+    def to_dict(self):
+        """Convert to dictionary for API responses."""
+        return {
+            'id': self.id,
+            'transaction_date': self.transaction_date.isoformat() if self.transaction_date else None,
+            'bank_account': self.bank_account,
+            'source_type': self.source_type,
+            'description': self.description,
+            'reference': self.reference,
+            'currency': self.currency,
+            'debit_gbp': float(self.debit_gbp) if self.debit_gbp else 0,
+            'credit_gbp': float(self.credit_gbp) if self.credit_gbp else 0,
+            'net_amount': self.net_amount(),
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class MonthlyCashSnapshot(db.Model):
+    """Store monthly cash flow snapshots calculated from bank transactions."""
+
+    __tablename__ = 'monthly_cash_snapshots'
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.Date, nullable=False, unique=True, index=True)  # Last day of month
+    opening_balance = db.Column(db.Numeric(12, 2))
+    total_in = db.Column(db.Numeric(12, 2))
+    total_out = db.Column(db.Numeric(12, 2))
+    closing_balance = db.Column(db.Numeric(12, 2))
+    wages_paid = db.Column(db.Numeric(12, 2))      # WAGES transactions
+    hmrc_paid = db.Column(db.Numeric(12, 2))       # HMRC transactions (PAYE)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def net_change(self):
+        """Get net change for the month."""
+        return float(self.total_in or 0) - float(self.total_out or 0)
+
+    def total_payroll(self):
+        """Get total payroll (wages + HMRC)."""
+        return float(self.wages_paid or 0) + float(self.hmrc_paid or 0)
+
+    def to_dict(self):
+        """Convert to dictionary for API responses."""
+        return {
+            'id': self.id,
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
+            'month': self.snapshot_date.strftime('%Y-%m') if self.snapshot_date else None,
+            'opening_balance': float(self.opening_balance) if self.opening_balance else 0,
+            'total_in': float(self.total_in) if self.total_in else 0,
+            'total_out': float(self.total_out) if self.total_out else 0,
+            'closing_balance': float(self.closing_balance) if self.closing_balance else 0,
+            'net_change': self.net_change(),
+            'wages_paid': float(self.wages_paid) if self.wages_paid else 0,
+            'hmrc_paid': float(self.hmrc_paid) if self.hmrc_paid else 0,
+            'total_payroll': self.total_payroll(),
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }

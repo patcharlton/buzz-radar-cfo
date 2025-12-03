@@ -9,7 +9,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from database.db import db
-from database.models import MonthlySnapshot, AccountBalanceHistory
+from database.models import MonthlySnapshot, AccountBalanceHistory, BankTransaction, MonthlyCashSnapshot
 from xero import XeroClient, XeroAuth
 
 history_bp = Blueprint('history', __name__)
@@ -449,6 +449,403 @@ def get_trends():
             },
             'yoy_comparisons': yoy_comparisons,
             'latest_month': snapshots[-1].snapshot_date.strftime('%b %Y') if snapshots else None
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# =============================================================================
+# BANK TRANSACTION HISTORY ENDPOINTS
+# =============================================================================
+
+@history_bp.route('/api/history/cash-position')
+def get_cash_position_history():
+    """
+    Get monthly cash position history from bank transactions.
+
+    Query params:
+        months: Number of months to return (default 60)
+
+    Returns:
+        Monthly cash flow data including opening/closing balances
+    """
+    try:
+        months = request.args.get('months', 60, type=int)
+        months = min(max(months, 1), 120)
+
+        snapshots = MonthlyCashSnapshot.query.order_by(
+            MonthlyCashSnapshot.snapshot_date.desc()
+        ).limit(months).all()
+
+        # Reverse to chronological order
+        snapshots = list(reversed(snapshots))
+
+        # Get date range
+        if snapshots:
+            earliest = snapshots[0].snapshot_date.strftime('%Y-%m')
+            latest = snapshots[-1].snapshot_date.strftime('%Y-%m')
+        else:
+            earliest = None
+            latest = None
+
+        return jsonify({
+            'success': True,
+            'months': [s.to_dict() for s in snapshots],
+            'earliest_month': earliest,
+            'latest_month': latest,
+            'count': len(snapshots)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@history_bp.route('/api/history/cash-trend')
+def get_cash_trend():
+    """
+    Get simplified cash trend for sparklines.
+
+    Query params:
+        months: Number of months to return (default 12)
+
+    Returns:
+        Arrays of values and labels for easy charting
+    """
+    try:
+        months = request.args.get('months', 12, type=int)
+        months = min(max(months, 1), 60)
+
+        snapshots = MonthlyCashSnapshot.query.order_by(
+            MonthlyCashSnapshot.snapshot_date.desc()
+        ).limit(months).all()
+
+        # Reverse to chronological order
+        snapshots = list(reversed(snapshots))
+
+        values = [float(s.closing_balance or 0) for s in snapshots]
+        labels = [s.snapshot_date.strftime('%b %y') for s in snapshots]
+
+        # Calculate YoY change
+        yoy_change = None
+        if len(snapshots) >= 12:
+            current = float(snapshots[-1].closing_balance or 0)
+            year_ago = float(snapshots[-12].closing_balance or 0)
+            if year_ago != 0:
+                yoy_change = round(((current - year_ago) / abs(year_ago)) * 100, 1)
+
+        return jsonify({
+            'success': True,
+            'values': values,
+            'labels': labels,
+            'yoy_change_percent': yoy_change,
+            'latest_balance': values[-1] if values else None
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@history_bp.route('/api/history/payroll')
+def get_payroll_history():
+    """
+    Get monthly payroll/PAYE cash payments.
+
+    Query params:
+        months: Number of months to return (default 12)
+
+    Returns:
+        Monthly payroll breakdown (wages + HMRC)
+    """
+    try:
+        months = request.args.get('months', 12, type=int)
+        months = min(max(months, 1), 60)
+
+        snapshots = MonthlyCashSnapshot.query.order_by(
+            MonthlyCashSnapshot.snapshot_date.desc()
+        ).limit(months).all()
+
+        # Reverse to chronological order
+        snapshots = list(reversed(snapshots))
+
+        # Build response
+        payroll_data = []
+        total_wages = 0
+        total_hmrc = 0
+
+        for s in snapshots:
+            wages = float(s.wages_paid or 0)
+            hmrc = float(s.hmrc_paid or 0)
+            total_wages += wages
+            total_hmrc += hmrc
+
+            payroll_data.append({
+                'month': s.snapshot_date.strftime('%Y-%m'),
+                'month_label': s.snapshot_date.strftime('%b %Y'),
+                'wages': wages,
+                'hmrc': hmrc,
+                'total_payroll': wages + hmrc
+            })
+
+        # Calculate average
+        if snapshots:
+            avg_monthly = (total_wages + total_hmrc) / len(snapshots)
+        else:
+            avg_monthly = 0
+
+        return jsonify({
+            'success': True,
+            'months': payroll_data,
+            'average_monthly': round(avg_monthly, 2),
+            'total_wages': round(total_wages, 2),
+            'total_hmrc': round(total_hmrc, 2),
+            'count': len(snapshots)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@history_bp.route('/api/drill/bank-transactions')
+def drill_bank_transactions():
+    """
+    Get bank transactions for drill-down view.
+
+    Query params:
+        from_date: Start date (ISO format)
+        to_date: End date (ISO format)
+        account: Filter by bank account name
+        source_type: Filter by transaction type (Spend Money, etc.)
+        search: Search in description field
+        page: Page number (default 1)
+        page_size: Results per page (default 50, max 100)
+
+    Returns:
+        Paginated transaction list with summary
+    """
+    from sqlalchemy import func
+
+    try:
+        # Parse params
+        from_date_str = request.args.get('from_date')
+        to_date_str = request.args.get('to_date')
+        account = request.args.get('account')
+        source_type = request.args.get('source_type')
+        search = request.args.get('search', '').strip()
+        page = request.args.get('page', 1, type=int)
+        page_size = min(request.args.get('page_size', 50, type=int), 100)
+
+        # Build query
+        query = BankTransaction.query
+
+        if from_date_str:
+            try:
+                from_date = datetime.strptime(from_date_str[:10], '%Y-%m-%d').date()
+                query = query.filter(BankTransaction.transaction_date >= from_date)
+            except ValueError:
+                pass
+
+        if to_date_str:
+            try:
+                to_date = datetime.strptime(to_date_str[:10], '%Y-%m-%d').date()
+                query = query.filter(BankTransaction.transaction_date <= to_date)
+            except ValueError:
+                pass
+
+        if account:
+            query = query.filter(BankTransaction.bank_account == account)
+
+        if source_type:
+            query = query.filter(BankTransaction.source_type == source_type)
+
+        if search:
+            query = query.filter(BankTransaction.description.ilike(f'%{search}%'))
+
+        # Get totals before pagination
+        totals_query = db.session.query(
+            func.sum(BankTransaction.debit_gbp).label('total_in'),
+            func.sum(BankTransaction.credit_gbp).label('total_out'),
+            func.count(BankTransaction.id).label('count')
+        )
+
+        # Apply same filters
+        if from_date_str:
+            try:
+                totals_query = totals_query.filter(BankTransaction.transaction_date >= from_date)
+            except NameError:
+                pass
+        if to_date_str:
+            try:
+                totals_query = totals_query.filter(BankTransaction.transaction_date <= to_date)
+            except NameError:
+                pass
+        if account:
+            totals_query = totals_query.filter(BankTransaction.bank_account == account)
+        if source_type:
+            totals_query = totals_query.filter(BankTransaction.source_type == source_type)
+        if search:
+            totals_query = totals_query.filter(BankTransaction.description.ilike(f'%{search}%'))
+
+        totals = totals_query.first()
+
+        # Paginate
+        total_count = query.count()
+        offset = (page - 1) * page_size
+        transactions = query.order_by(
+            BankTransaction.transaction_date.desc()
+        ).offset(offset).limit(page_size).all()
+
+        return jsonify({
+            'success': True,
+            'transactions': [t.to_dict() for t in transactions],
+            'summary': {
+                'total_in': float(totals.total_in or 0),
+                'total_out': float(totals.total_out or 0),
+                'net_change': float((totals.total_in or 0) - (totals.total_out or 0)),
+                'transaction_count': totals.count or 0
+            },
+            'total_count': total_count,
+            'page': page,
+            'page_size': page_size,
+            'has_more': offset + len(transactions) < total_count
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@history_bp.route('/api/drill/bank-transactions/accounts')
+def get_bank_accounts():
+    """Get list of bank accounts from imported transactions."""
+    from sqlalchemy import func
+
+    try:
+        accounts = db.session.query(
+            BankTransaction.bank_account,
+            func.count(BankTransaction.id).label('count'),
+            func.sum(BankTransaction.debit_gbp).label('total_in'),
+            func.sum(BankTransaction.credit_gbp).label('total_out')
+        ).group_by(BankTransaction.bank_account).all()
+
+        return jsonify({
+            'success': True,
+            'accounts': [{
+                'name': a.bank_account,
+                'transaction_count': a.count,
+                'total_in': float(a.total_in or 0),
+                'total_out': float(a.total_out or 0)
+            } for a in accounts]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@history_bp.route('/api/drill/bank-transactions/source-types')
+def get_source_types():
+    """Get list of transaction source types."""
+    from sqlalchemy import func
+
+    try:
+        types = db.session.query(
+            BankTransaction.source_type,
+            func.count(BankTransaction.id).label('count')
+        ).group_by(BankTransaction.source_type).order_by(
+            func.count(BankTransaction.id).desc()
+        ).all()
+
+        return jsonify({
+            'success': True,
+            'source_types': [{
+                'name': t.source_type,
+                'count': t.count
+            } for t in types]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@history_bp.route('/api/metrics/runway-historical')
+def get_runway_historical():
+    """
+    Calculate cash runway based on actual historical cash burn.
+
+    Uses bank transaction data to calculate average monthly cash flow,
+    which is more accurate than P&L-based estimates.
+
+    Returns:
+        runway_months: Months cash would last at current burn rate
+        avg_monthly_burn: Average monthly cash out
+        is_profitable: True if avg cash in exceeds cash out
+        calculation_basis: Description of calculation method
+    """
+    try:
+        from sqlalchemy import func
+
+        # Get last 6 complete months (excluding current month)
+        today = date.today()
+        current_month_start = date(today.year, today.month, 1)
+
+        snapshots = MonthlyCashSnapshot.query.filter(
+            MonthlyCashSnapshot.snapshot_date < current_month_start
+        ).order_by(
+            MonthlyCashSnapshot.snapshot_date.desc()
+        ).limit(6).all()
+
+        if len(snapshots) < 3:
+            return jsonify({
+                'success': True,
+                'runway_months': None,
+                'avg_monthly_burn': None,
+                'is_profitable': None,
+                'calculation_basis': 'Insufficient history (need at least 3 months)',
+                'months_analyzed': len(snapshots)
+            })
+
+        # Calculate averages from historical data
+        total_in = sum(float(s.total_in or 0) for s in snapshots)
+        total_out = sum(float(s.total_out or 0) for s in snapshots)
+        num_months = len(snapshots)
+
+        avg_monthly_in = total_in / num_months
+        avg_monthly_out = total_out / num_months
+        avg_net_change = avg_monthly_in - avg_monthly_out
+
+        # Get current cash position from Xero (if connected) or latest snapshot
+        try:
+            if xero_auth.is_connected():
+                xero_client = XeroClient()
+                bank_summary = xero_client.get_bank_summary()
+                current_cash = float(bank_summary.get('total_balance', 0))
+            else:
+                # Use latest closing balance
+                latest = MonthlyCashSnapshot.query.order_by(
+                    MonthlyCashSnapshot.snapshot_date.desc()
+                ).first()
+                current_cash = float(latest.closing_balance) if latest else 0
+        except Exception:
+            latest = MonthlyCashSnapshot.query.order_by(
+                MonthlyCashSnapshot.snapshot_date.desc()
+            ).first()
+            current_cash = float(latest.closing_balance) if latest else 0
+
+        is_profitable = avg_net_change >= 0
+
+        # Calculate runway based on expense rate
+        if avg_monthly_out <= 0:
+            runway_months = None  # No expenses
+        elif current_cash <= 0:
+            runway_months = 0
+        else:
+            # Runway = how long until cash runs out at current burn rate
+            # If profitable, runway is technically infinite, but we still show
+            # how long cash would last if revenue stopped
+            runway_months = current_cash / avg_monthly_out
+
+        return jsonify({
+            'success': True,
+            'runway_months': round(runway_months, 1) if runway_months is not None else None,
+            'avg_monthly_burn': round(avg_monthly_out, 2),
+            'avg_monthly_revenue': round(avg_monthly_in, 2),
+            'avg_net_change': round(avg_net_change, 2),
+            'current_cash': round(current_cash, 2),
+            'is_profitable': is_profitable,
+            'calculation_basis': f'{num_months}-month cash flow average',
+            'months_analyzed': num_months
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
