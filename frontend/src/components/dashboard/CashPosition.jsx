@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { motion, useSpring, useTransform } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ClickableAmount } from '@/components/ui/clickable-amount';
 import { Landmark, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Sparkline } from '@/components/charts/Sparkline';
 import { YoYBadge } from '@/components/ui/yoy-badge';
+import { useDrillDown, DRILL_TYPES } from '@/contexts/DrillDownContext';
 
 function AnimatedNumber({ value, duration = 1 }) {
   const spring = useSpring(0, { duration: duration * 1000 });
@@ -22,6 +24,21 @@ function AnimatedNumber({ value, duration = 1 }) {
 }
 
 export function CashPosition({ data, loading, trends, yoyComparison }) {
+  const { openDrill } = useDrillDown();
+
+  const handleTotalClick = () => {
+    openDrill(DRILL_TYPES.CASH, {
+      title: 'All Bank Transactions',
+    });
+  };
+
+  const handleAccountClick = (account) => {
+    openDrill(DRILL_TYPES.CASH, {
+      title: `${account.name} Transactions`,
+      filters: { accountId: account.account_id },
+    });
+  };
+
   if (loading) {
     return (
       <Card>
@@ -74,9 +91,12 @@ export function CashPosition({ data, loading, trends, yoyComparison }) {
         </CardHeader>
         <CardContent>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className={`text-3xl font-bold font-mono tabular-nums ${isLow ? 'text-negative' : ''}`}>
+            <ClickableAmount
+              onClick={handleTotalClick}
+              className={`text-3xl font-bold font-mono tabular-nums ${isLow ? 'text-negative' : ''}`}
+            >
               <AnimatedNumber value={total} />
-            </span>
+            </ClickableAmount>
             {trend !== 0 && (
               <Badge
                 variant={trend > 0 ? 'success' : 'destructive'}
@@ -127,9 +147,12 @@ export function CashPosition({ data, loading, trends, yoyComparison }) {
                   <span className="text-muted-foreground truncate flex-1">
                     {account.name}
                   </span>
-                  <span className="font-mono tabular-nums">
+                  <ClickableAmount
+                    onClick={() => handleAccountClick(account)}
+                    className="font-mono tabular-nums"
+                  >
                     {formatCurrency(account.balance)}
-                  </span>
+                  </ClickableAmount>
                 </motion.div>
               ))}
             </div>

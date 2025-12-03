@@ -16,6 +16,8 @@ import CashForecast from '@/components/CashForecast';
 import Anomalies from '@/components/Anomalies';
 import ProjectionWidget from '@/components/ProjectionWidget';
 import { LoginPage } from '@/components/LoginPage';
+import { DrillDownDrawer } from '@/components/DrillDownDrawer';
+import { DrillDownProvider } from '@/contexts/DrillDownContext';
 import api from '@/services/api';
 
 function App() {
@@ -143,6 +145,42 @@ function App() {
     return <LoginPage onLogin={() => setIsAuthenticated(true)} />;
   }
 
+  // Wrap main app with DrillDownProvider
+  return (
+    <DrillDownProvider>
+      <AppContent
+        loading={loading}
+        isConnected={isConnected}
+        tenantName={tenantName}
+        lastSynced={lastSynced}
+        dashboardData={dashboardData}
+        historyTrends={historyTrends}
+        runwayData={runwayData}
+        syncing={syncing}
+        onSync={handleSync}
+        onConnect={handleConnect}
+        onDisconnect={handleDisconnect}
+        onLogout={handleLogout}
+      />
+    </DrillDownProvider>
+  );
+}
+
+function AppContent({
+  loading,
+  isConnected,
+  tenantName,
+  lastSynced,
+  dashboardData,
+  historyTrends,
+  runwayData,
+  syncing,
+  onSync,
+  onConnect,
+  onDisconnect,
+  onLogout,
+}) {
+
   if (loading) {
     return (
       <Shell
@@ -152,7 +190,7 @@ function App() {
         onSync={() => {}}
         onConnect={() => {}}
         onDisconnect={() => {}}
-        onLogout={handleLogout}
+        onLogout={onLogout}
         syncing={false}
       >
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -168,10 +206,10 @@ function App() {
         isConnected={isConnected}
         tenantName={tenantName}
         lastSynced={lastSynced}
-        onSync={handleSync}
-        onConnect={handleConnect}
-        onDisconnect={handleDisconnect}
-        onLogout={handleLogout}
+        onSync={onSync}
+        onConnect={onConnect}
+        onDisconnect={onDisconnect}
+        onLogout={onLogout}
         syncing={syncing}
       >
         {dashboardData && (
@@ -238,6 +276,7 @@ function App() {
           </div>
         )}
       </Shell>
+      <DrillDownDrawer />
       <Toaster richColors position="bottom-right" />
     </>
   );

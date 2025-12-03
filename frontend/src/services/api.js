@@ -418,6 +418,162 @@ export const api = {
     });
     return response.json();
   },
+
+  // =============================================================================
+  // DRILL-DOWN ENDPOINTS
+  // =============================================================================
+
+  /**
+   * Get bank transactions for cash drill-down
+   */
+  async drillCash({ fromDate, toDate, accountId, page = 1, pageSize = 50 } = {}) {
+    const params = new URLSearchParams();
+    if (fromDate) params.set('from_date', fromDate);
+    if (toDate) params.set('to_date', toDate);
+    if (accountId) params.set('account_id', accountId);
+    params.set('page', page);
+    params.set('page_size', pageSize);
+
+    const response = await fetch(`${API_BASE}/api/drill/cash?${params}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get bank accounts list for filtering
+   */
+  async drillCashAccounts() {
+    const response = await fetch(`${API_BASE}/api/drill/cash/accounts`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get receivables (invoices) for drill-down
+   */
+  async drillReceivables({ fromDate, toDate, status, overdueOnly, page = 1, pageSize = 50 } = {}) {
+    const params = new URLSearchParams();
+    if (fromDate) params.set('from_date', fromDate);
+    if (toDate) params.set('to_date', toDate);
+    if (status) params.set('status', status);
+    if (overdueOnly) params.set('overdue_only', 'true');
+    params.set('page', page);
+    params.set('page_size', pageSize);
+
+    const response = await fetch(`${API_BASE}/api/drill/receivables?${params}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get single invoice details with line items
+   */
+  async drillReceivablesDetail(invoiceId) {
+    const response = await fetch(`${API_BASE}/api/drill/receivables/${invoiceId}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get payables (bills) for drill-down
+   */
+  async drillPayables({ fromDate, toDate, status, overdueOnly, page = 1, pageSize = 50 } = {}) {
+    const params = new URLSearchParams();
+    if (fromDate) params.set('from_date', fromDate);
+    if (toDate) params.set('to_date', toDate);
+    if (status) params.set('status', status);
+    if (overdueOnly) params.set('overdue_only', 'true');
+    params.set('page', page);
+    params.set('page_size', pageSize);
+
+    const response = await fetch(`${API_BASE}/api/drill/payables?${params}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get single bill details with line items
+   */
+  async drillPayablesDetail(invoiceId) {
+    const response = await fetch(`${API_BASE}/api/drill/payables/${invoiceId}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get P&L categories for drill-down
+   */
+  async drillPnl({ fromDate, toDate } = {}) {
+    const params = new URLSearchParams();
+    if (fromDate) params.set('from_date', fromDate);
+    if (toDate) params.set('to_date', toDate);
+
+    const response = await fetch(`${API_BASE}/api/drill/pnl?${params}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get journal entries for a specific P&L account
+   */
+  async drillPnlAccount(accountId, { fromDate, toDate, page = 1 } = {}) {
+    const params = new URLSearchParams();
+    if (fromDate) params.set('from_date', fromDate);
+    if (toDate) params.set('to_date', toDate);
+    params.set('page', page);
+
+    const response = await fetch(`${API_BASE}/api/drill/pnl/account/${accountId}?${params}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Search across transactions
+   */
+  async drillSearch({ query, type = 'all', fromDate, toDate, page = 1, pageSize = 50 } = {}) {
+    const params = new URLSearchParams();
+    params.set('q', query);
+    params.set('type', type);
+    if (fromDate) params.set('from_date', fromDate);
+    if (toDate) params.set('to_date', toDate);
+    params.set('page', page);
+    params.set('page_size', pageSize);
+
+    const response = await fetch(`${API_BASE}/api/drill/search?${params}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get all account codes
+   */
+  async drillAccounts(refresh = false) {
+    const params = new URLSearchParams();
+    if (refresh) params.set('refresh', 'true');
+
+    const response = await fetch(`${API_BASE}/api/drill/accounts?${params}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+};
+
+// Xero deep link helpers
+export const xeroLinks = {
+  invoice: (id) => `https://go.xero.com/AccountsReceivable/View.aspx?invoiceID=${id}`,
+  bill: (id) => `https://go.xero.com/AccountsPayable/View.aspx?invoiceID=${id}`,
+  bankTransaction: (id) => `https://go.xero.com/Bank/ViewTransaction.aspx?bankTransactionID=${id}`,
+  contact: (id) => `https://go.xero.com/Contacts/View/${id}`,
+  account: (code) => `https://go.xero.com/ChartOfAccounts/View.aspx?accountCode=${code}`,
 };
 
 export default api;

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ClickableAmount } from '@/components/ui/clickable-amount';
 import {
   Tooltip,
   TooltipContent,
@@ -22,8 +23,23 @@ import { formatCurrency, cn } from '@/lib/utils';
 import api from '@/services/api';
 import { Sparkline } from '@/components/charts/Sparkline';
 import { YoYBadge } from '@/components/ui/yoy-badge';
+import { useDrillDown, DRILL_TYPES } from '@/contexts/DrillDownContext';
 
 export function Payables({ data, loading, trends, yoyComparison }) {
+  const { openDrill } = useDrillDown();
+
+  const handleTotalClick = () => {
+    openDrill(DRILL_TYPES.PAYABLES, {
+      title: 'Outstanding Bills',
+    });
+  };
+
+  const handleOverdueClick = () => {
+    openDrill(DRILL_TYPES.PAYABLES, {
+      title: 'Overdue Bills',
+      filters: { overdueOnly: true },
+    });
+  };
   const [recurringCosts, setRecurringCosts] = useState(null);
   const [costsLoading, setCostsLoading] = useState(false);
   const [showPredictions, setShowPredictions] = useState(false);
@@ -112,9 +128,12 @@ export function Payables({ data, loading, trends, yoyComparison }) {
         </CardHeader>
         <CardContent className="flex-1 flex flex-col">
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-3xl font-bold font-mono tabular-nums text-negative">
+            <ClickableAmount
+              onClick={handleTotalClick}
+              className="text-3xl font-bold font-mono tabular-nums text-negative"
+            >
               {formatCurrency(total)}
-            </span>
+            </ClickableAmount>
           </div>
 
           {/* YoY comparison badge - inverted because lower payables is better */}
@@ -160,7 +179,8 @@ export function Payables({ data, loading, trends, yoyComparison }) {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.1 }}
-              className="flex items-center gap-2 mt-3 p-2 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-900"
+              className="flex items-center gap-2 mt-3 p-2 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-900 cursor-pointer hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors"
+              onClick={handleOverdueClick}
             >
               <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0" />
               <div className="flex-1 min-w-0">

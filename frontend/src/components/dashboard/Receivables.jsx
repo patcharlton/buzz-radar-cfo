@@ -3,12 +3,36 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ClickableAmount } from '@/components/ui/clickable-amount';
 import { ArrowDownLeft, Clock, AlertCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Sparkline } from '@/components/charts/Sparkline';
 import { YoYBadge } from '@/components/ui/yoy-badge';
+import { useDrillDown, DRILL_TYPES } from '@/contexts/DrillDownContext';
 
 export function Receivables({ data, loading, trends, yoyComparison }) {
+  const { openDrill } = useDrillDown();
+
+  const handleTotalClick = () => {
+    openDrill(DRILL_TYPES.RECEIVABLES, {
+      title: 'Outstanding Invoices',
+    });
+  };
+
+  const handleOverdueClick = () => {
+    openDrill(DRILL_TYPES.RECEIVABLES, {
+      title: 'Overdue Invoices',
+      filters: { overdueOnly: true },
+    });
+  };
+
+  const handleInvoiceClick = (invoice) => {
+    openDrill(DRILL_TYPES.RECEIVABLES_DETAIL, {
+      title: `${invoice.invoice_number} - ${invoice.contact_name}`,
+      filters: { invoiceId: invoice.invoice_id },
+    });
+  };
+
   if (loading) {
     return (
       <Card>
@@ -59,9 +83,12 @@ export function Receivables({ data, loading, trends, yoyComparison }) {
         </CardHeader>
         <CardContent>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-3xl font-bold font-mono tabular-nums">
+            <ClickableAmount
+              onClick={handleTotalClick}
+              className="text-3xl font-bold font-mono tabular-nums"
+            >
               {formatCurrency(total)}
-            </span>
+            </ClickableAmount>
           </div>
 
           {/* YoY comparison badge */}
@@ -90,7 +117,8 @@ export function Receivables({ data, loading, trends, yoyComparison }) {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-2 mt-3 p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-900"
+              className="flex items-center gap-2 mt-3 p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-900 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors"
+              onClick={handleOverdueClick}
             >
               <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
               <div className="flex-1 min-w-0">
@@ -106,7 +134,10 @@ export function Receivables({ data, loading, trends, yoyComparison }) {
 
           {/* Largest invoice */}
           {largestInvoice && (
-            <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+            <div
+              className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 -mx-6 px-6 py-2 transition-colors"
+              onClick={() => handleInvoiceClick(largestInvoice)}
+            >
               <p className="text-xs text-muted-foreground mb-1">Largest Outstanding</p>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium truncate flex-1 mr-2">
