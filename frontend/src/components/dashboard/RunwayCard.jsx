@@ -43,24 +43,25 @@ export function RunwayCard({ data, loading }) {
   const { runway_months, avg_monthly_burn, current_cash, is_profitable, calculation_basis, months_analyzed } = data;
 
   // Determine runway status and styling
+  // For a profitable business, runway is a "what if" metric, not an emergency indicator
   const isPositiveCashFlow = is_profitable === true;
-  const isHealthy = runway_months === null || runway_months > 12;
-  const isWarning = runway_months !== null && runway_months <= 12 && runway_months > 6;
-  const isCritical = runway_months !== null && runway_months <= 6;
+  const isHealthy = runway_months === null || runway_months > 6 || isPositiveCashFlow;
+  const isModerate = !isPositiveCashFlow && runway_months !== null && runway_months <= 6 && runway_months > 3;
+  const isLow = !isPositiveCashFlow && runway_months !== null && runway_months <= 3;
 
   const getStatusColor = () => {
-    if (isPositiveCashFlow || isHealthy) return 'text-emerald-600 dark:text-emerald-400';
-    if (isWarning) return 'text-amber-600 dark:text-amber-400';
+    if (isHealthy) return 'text-emerald-600 dark:text-emerald-400';
+    if (isModerate) return 'text-amber-600 dark:text-amber-400';
     return 'text-red-600 dark:text-red-400';
   };
 
   const getStatusBgColor = () => {
-    if (isPositiveCashFlow || isHealthy) return 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900';
-    if (isWarning) return 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900';
+    if (isHealthy) return 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900';
+    if (isModerate) return 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900';
     return 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900';
   };
 
-  const StatusIcon = isPositiveCashFlow || isHealthy ? CheckCircle : isCritical ? AlertTriangle : Gauge;
+  const StatusIcon = isHealthy ? CheckCircle : isLow ? AlertTriangle : Gauge;
 
   return (
     <motion.div
@@ -109,7 +110,7 @@ export function RunwayCard({ data, loading }) {
                 <p className="text-sm text-muted-foreground mt-1">
                   {isPositiveCashFlow
                     ? 'Revenue exceeds expenses'
-                    : 'at current burn rate'}
+                    : 'if revenue stopped (worst case)'}
                 </p>
               </div>
             </div>
@@ -140,26 +141,6 @@ export function RunwayCard({ data, loading }) {
             </div>
           </div>
 
-          {/* Warning message for critical runway */}
-          {isCritical && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="mt-4 p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-900"
-            >
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-red-800 dark:text-red-200">
-                    Critical Runway Alert
-                  </p>
-                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                    Consider immediate action: reduce expenses, accelerate receivables, or secure additional funding.
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          )}
         </CardContent>
       </Card>
     </motion.div>
