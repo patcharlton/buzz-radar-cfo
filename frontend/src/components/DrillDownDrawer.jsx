@@ -53,7 +53,7 @@ export function DrillDownDrawer() {
   // Default to 'all' for receivables/payables to show historical CSV data
   const [dateRange, setDateRange] = useState('all');
   const [statusFilter, setStatusFilter] = useState('ALL'); // Default to all statuses to show historical data
-  const [cashSource, setCashSource] = useState('transactions'); // 'transactions' = Accounting API (Finance API requires special approval)
+  // Historical bank transaction data is now always used (from Excel import)
 
   // Date range presets
   const getDateRangeFilters = useCallback(() => {
@@ -113,12 +113,8 @@ export function DrillDownDrawer() {
 
         switch (drillType) {
           case DRILL_TYPES.CASH:
-            // Use Finance API (bank statements) or Accounting API (transactions)
-            if (cashSource === 'statements') {
-              result = await api.drillCashStatements({ ...combinedFilters, page });
-            } else {
-              result = await api.drillCash({ ...combinedFilters, page });
-            }
+            // Always use historical bank transactions - contains complete Excel import history
+            result = await api.drillBankTransactions({ ...combinedFilters, page });
             break;
           case DRILL_TYPES.RECEIVABLES:
             // Always use historical data - contains complete invoice history
@@ -159,12 +155,12 @@ export function DrillDownDrawer() {
     };
 
     fetchData();
-  }, [isOpen, drillType, filters, page, dateRange, statusFilter, cashSource, getDateRangeFilters]);
+  }, [isOpen, drillType, filters, page, dateRange, statusFilter, getDateRangeFilters]);
 
   // Reset page when filters or date range change
   useEffect(() => {
     setPage(1);
-  }, [filters, dateRange, statusFilter, cashSource]);
+  }, [filters, dateRange, statusFilter]);
 
   // Filter data client-side by search query
   const filteredData = useMemo(() => {
@@ -216,9 +212,13 @@ export function DrillDownDrawer() {
     let filename = `${drillType}-export-${format(new Date(), 'yyyy-MM-dd')}.csv`;
 
     if (filteredData.transactions) {
-      csvContent = 'Date,Description,Contact,Reference,Amount,Reconciled\n';
+      csvContent = 'Date,Description,Bank Account,Source Type,Reference,Amount\n';
       filteredData.transactions.forEach(t => {
-        csvContent += `"${t.date || ''}","${t.description || ''}","${t.contact_name || ''}","${t.reference || ''}",${t.amount || 0},"${t.is_reconciled ? 'Yes' : 'No'}"\n`;
+        // Handle both historical format and Xero API format
+        const date = t.transaction_date || t.date || '';
+        const amount = t.net_amount ?? t.amount ?? 0;
+        const bankAccount = t.bank_account || t.bank_account_name || '';
+        csvContent += `"${date}","${t.description || ''}","${bankAccount}","${t.source_type || ''}","${t.reference || ''}",${amount}\n`;
       });
     } else if (filteredData.invoices) {
       csvContent = 'Invoice #,Contact,Issue Date,Due Date,Amount Due,Status,Overdue\n';
@@ -368,7 +368,6 @@ export function DrillDownDrawer() {
                     className="pl-9"
                   />
                 </div>
-                {/* Note: Finance API Bank Statements require special Xero approval */}
                 {/* Status filter for Receivables/Payables */}
                 {[DRILL_TYPES.RECEIVABLES, DRILL_TYPES.PAYABLES].includes(drillType) && (
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -487,44 +486,53 @@ function CashTransactionTable({ data }) {
 
   return (
     <div className="space-y-2">
-      {transactions.map((txn) => (
-        <div
-          key={txn.transaction_id}
-          className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-        >
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-medium truncate">{txn.description || 'No description'}</span>
-              {txn.is_reconciled && (
-                <Badge variant="secondary" className="text-xs">Reconciled</Badge>
-              )}
+      {transactions.map((txn) => {
+        // Handle both historical format and Xero API format
+        const id = txn.id || txn.transaction_id;
+        const date = txn.transaction_date || txn.date;
+        const amount = txn.net_amount ?? txn.amount;
+        const sourceType = txn.source_type;
+        const bankAccount = txn.bank_account || txn.bank_account_name;
+
+        return (
+          <div
+            key={id}
+            className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-medium truncate">{txn.description || 'No description'}</span>
+                {sourceType && (
+                  <Badge variant="outline" className="text-xs">{sourceType}</Badge>
+                )}
+                {txn.is_reconciled && (
+                  <Badge variant="secondary" className="text-xs">Reconciled</Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
+                <span>{formatDate(date)}</span>
+                {bankAccount && (
+                  <>
+                    <span>•</span>
+                    <span className="truncate">{bankAccount}</span>
+                  </>
+                )}
+                {txn.contact_name && (
+                  <>
+                    <span>•</span>
+                    <span className="truncate">{txn.contact_name}</span>
+                  </>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
-              <span>{formatDate(txn.date)}</span>
-              {txn.contact_name && (
-                <>
-                  <span>•</span>
-                  <span className="truncate">{txn.contact_name}</span>
-                </>
-              )}
+            <div className="flex items-center gap-3">
+              <span className={`font-mono font-medium ${amount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
+              </span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className={`font-mono font-medium ${txn.amount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              {txn.amount >= 0 ? '+' : ''}{formatCurrency(txn.amount)}
-            </span>
-            <a
-              href={xeroLinks.bankTransaction(txn.transaction_id)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground"
-              title="View in Xero"
-            >
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
