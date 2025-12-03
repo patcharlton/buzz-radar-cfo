@@ -107,6 +107,9 @@ export function DrillDownDrawer() {
         const dateFilters = getDateRangeFilters();
         const combinedFilters = { ...filters, ...dateFilters };
 
+        // Use historical data for longer date ranges (> 1 year or 'all')
+        const useHistorical = dateRange === 'all' || dateRange === '1825' || dateRange === '730';
+
         switch (drillType) {
           case DRILL_TYPES.CASH:
             // Use Finance API (bank statements) or Accounting API (transactions)
@@ -117,16 +120,34 @@ export function DrillDownDrawer() {
             }
             break;
           case DRILL_TYPES.RECEIVABLES:
-            result = await api.drillReceivables({ ...combinedFilters, status: statusFilter === 'ALL' ? null : statusFilter, page });
+            if (useHistorical) {
+              result = await api.drillHistoricalReceivables({ ...combinedFilters, status: statusFilter === 'ALL' ? null : statusFilter, page });
+            } else {
+              result = await api.drillReceivables({ ...combinedFilters, status: statusFilter === 'ALL' ? null : statusFilter, page });
+            }
             break;
           case DRILL_TYPES.RECEIVABLES_DETAIL:
-            result = await api.drillReceivablesDetail(filters.invoiceId);
+            // Check if this is a historical invoice (numeric ID vs UUID)
+            if (filters.invoiceId && !filters.invoiceId.includes('-')) {
+              result = await api.drillHistoricalInvoice(filters.invoiceId);
+            } else {
+              result = await api.drillReceivablesDetail(filters.invoiceId);
+            }
             break;
           case DRILL_TYPES.PAYABLES:
-            result = await api.drillPayables({ ...combinedFilters, status: statusFilter === 'ALL' ? null : statusFilter, page });
+            if (useHistorical) {
+              result = await api.drillHistoricalPayables({ ...combinedFilters, status: statusFilter === 'ALL' ? null : statusFilter, page });
+            } else {
+              result = await api.drillPayables({ ...combinedFilters, status: statusFilter === 'ALL' ? null : statusFilter, page });
+            }
             break;
           case DRILL_TYPES.PAYABLES_DETAIL:
-            result = await api.drillPayablesDetail(filters.invoiceId);
+            // Check if this is a historical invoice (numeric ID vs UUID)
+            if (filters.invoiceId && !filters.invoiceId.includes('-')) {
+              result = await api.drillHistoricalInvoice(filters.invoiceId);
+            } else {
+              result = await api.drillPayablesDetail(filters.invoiceId);
+            }
             break;
           case DRILL_TYPES.PNL:
             result = await api.drillPnl(combinedFilters);
