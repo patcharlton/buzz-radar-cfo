@@ -83,8 +83,8 @@ export function DrillDownDrawer() {
         fromDate = startOfYear(today);
         break;
       case 'all':
-        // Pass 'all' explicitly so backend knows to fetch all history
-        return { fromDate: 'all', toDate: format(today, 'yyyy-MM-dd') };
+        // Pass null for fromDate so backend fetches all history (no start date filter)
+        return { fromDate: null, toDate: format(today, 'yyyy-MM-dd') };
       default:
         fromDate = subDays(today, 90);
     }
@@ -790,6 +790,10 @@ function EmptyState({ message }) {
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
+  // Only try to parse if it looks like a date (YYYY-MM-DD format)
+  if (typeof dateStr !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+    return String(dateStr);
+  }
   try {
     return format(parseISO(dateStr), 'd MMM yyyy');
   } catch {
