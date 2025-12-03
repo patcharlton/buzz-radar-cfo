@@ -55,6 +55,9 @@ def process_bank_transactions_excel(file_content):
     Returns:
         dict with import statistics
     """
+    import time
+    start_time = time.time()
+
     stats = {
         'total_rows': 0,
         'transactions_created': 0,
@@ -65,8 +68,11 @@ def process_bank_transactions_excel(file_content):
     }
 
     try:
+        print(f"[IMPORT] Starting Excel file processing...")
+
         # Read Excel, skip first 3 rows (headers)
         df = pd.read_excel(io.BytesIO(file_content), skiprows=3)
+        print(f"[IMPORT] Excel loaded: {len(df)} rows in {time.time() - start_time:.2f}s")
 
         # Rename columns to standard names
         expected_cols = ['Date', 'Source', 'Description', 'Reference', 'Currency',
@@ -81,13 +87,23 @@ def process_bank_transactions_excel(file_content):
         stats['total_rows'] = len(df)
 
         # Clear existing bank transactions before import
+        print(f"[IMPORT] Clearing existing transactions...")
         BankTransaction.query.delete()
         db.session.flush()
+        print(f"[IMPORT] Cleared in {time.time() - start_time:.2f}s")
+
+        # Pre-process DataFrame for faster iteration using vectorized operations
+        print(f"[IMPORT] Processing transactions...")
 
         transactions = []
         current_account = None
+        earliest_date = None
+        latest_date = None
 
-        for idx, row in df.iterrows():
+        # Convert to records for faster iteration
+        records = df.to_dict('records')
+
+        for idx, row in enumerate(records):
             date_val = row.get('Date')
             source = row.get('Source')
 
@@ -95,8 +111,11 @@ def process_bank_transactions_excel(file_content):
             if date_val == 'Date':
                 continue
 
-            # Account header detection: Source is empty, Date is a string (account name)
-            if pd.isna(source) and pd.notna(date_val):
+            # Account header detection: Source is empty/NaN, Date is a string (account name)
+            source_is_na = source is None or (isinstance(source, float) and pd.isna(source))
+            date_is_valid = date_val is not None and not (isinstance(date_val, float) and pd.isna(date_val))
+
+            if source_is_na and date_is_valid:
                 if isinstance(date_val, str):
                     # Skip summary rows
                     if date_val in ['Opening Balance', 'Closing Balance', 'Movement'] or str(date_val).startswith('Total'):
@@ -108,7 +127,7 @@ def process_bank_transactions_excel(file_content):
                 continue
 
             # Skip rows without a source type
-            if pd.isna(source) or source == 'Source':
+            if source_is_na or source == 'Source':
                 continue
 
             # Parse transaction date
@@ -125,7 +144,7 @@ def process_bank_transactions_excel(file_content):
                 tx_date = date_val.date()
             elif isinstance(date_val, date):
                 tx_date = date_val
-            elif pd.notna(date_val):
+            elif date_is_valid:
                 try:
                     tx_date = pd.to_datetime(date_val).date()
                 except Exception:
@@ -136,7 +155,6 @@ def process_bank_transactions_excel(file_content):
                 continue
 
             if not current_account:
-                stats['errors'].append(f'Row {idx}: Transaction without account header')
                 stats['transactions_skipped'] += 1
                 continue
 
@@ -144,30 +162,47 @@ def process_bank_transactions_excel(file_content):
             debit_gbp = parse_decimal(row.get('Debit_GBP'))
             credit_gbp = parse_decimal(row.get('Credit_GBP'))
 
+            # Get description and reference
+            desc = row.get('Description')
+            ref = row.get('Reference')
+            curr = row.get('Currency')
+
             # Create transaction
             transaction = BankTransaction(
                 transaction_date=tx_date,
                 bank_account=current_account,
                 source_type=str(source).strip(),
-                description=str(row.get('Description', '')).strip() if pd.notna(row.get('Description')) else None,
-                reference=str(row.get('Reference', '')).strip() if pd.notna(row.get('Reference')) else None,
-                currency=str(row.get('Currency', 'GBP')).strip() if pd.notna(row.get('Currency')) else 'GBP',
+                description=str(desc).strip() if desc is not None and not (isinstance(desc, float) and pd.isna(desc)) else None,
+                reference=str(ref).strip() if ref is not None and not (isinstance(ref, float) and pd.isna(ref)) else None,
+                currency=str(curr).strip() if curr is not None and not (isinstance(curr, float) and pd.isna(curr)) else 'GBP',
                 debit_gbp=debit_gbp,
                 credit_gbp=credit_gbp,
             )
             transactions.append(transaction)
 
             # Track date range
-            if stats['date_range']['earliest'] is None or tx_date < stats['date_range']['earliest']:
-                stats['date_range']['earliest'] = tx_date
-            if stats['date_range']['latest'] is None or tx_date > stats['date_range']['latest']:
-                stats['date_range']['latest'] = tx_date
+            if earliest_date is None or tx_date < earliest_date:
+                earliest_date = tx_date
+            if latest_date is None or tx_date > latest_date:
+                latest_date = tx_date
 
-        # Bulk insert transactions
-        db.session.bulk_save_objects(transactions)
+        print(f"[IMPORT] Processed {len(transactions)} transactions in {time.time() - start_time:.2f}s")
+
+        # Bulk insert transactions in batches for better performance
+        print(f"[IMPORT] Inserting transactions into database...")
+        batch_size = 500
+        for i in range(0, len(transactions), batch_size):
+            batch = transactions[i:i + batch_size]
+            db.session.bulk_save_objects(batch)
+            if (i + batch_size) % 1000 == 0:
+                print(f"[IMPORT] Inserted {min(i + batch_size, len(transactions))}/{len(transactions)} transactions...")
+
         db.session.commit()
+        print(f"[IMPORT] Database commit complete in {time.time() - start_time:.2f}s")
 
         stats['transactions_created'] = len(transactions)
+        stats['date_range']['earliest'] = earliest_date
+        stats['date_range']['latest'] = latest_date
 
         # Convert dates to strings for JSON
         if stats['date_range']['earliest']:
@@ -175,8 +210,11 @@ def process_bank_transactions_excel(file_content):
         if stats['date_range']['latest']:
             stats['date_range']['latest'] = stats['date_range']['latest'].isoformat()
 
+        print(f"[IMPORT] Complete! {stats['transactions_created']} transactions imported in {time.time() - start_time:.2f}s")
+
     except Exception as e:
         db.session.rollback()
+        print(f"[IMPORT] ERROR: {str(e)}")
         stats['errors'].append(f'Failed to process Excel file: {str(e)}')
 
     return stats
@@ -310,14 +348,20 @@ def upload_bank_transactions():
     Form data:
         file: The Excel file (.xlsx)
     """
+    import time
+    request_start = time.time()
+    print(f"[UPLOAD] Bank transactions upload request received")
+
     try:
         if 'file' not in request.files:
+            print(f"[UPLOAD] ERROR: No file in request")
             return jsonify({
                 'success': False,
                 'error': 'No file provided'
             }), 400
 
         file = request.files['file']
+        print(f"[UPLOAD] File received: {file.filename}")
 
         if file.filename == '':
             return jsonify({
@@ -335,6 +379,7 @@ def upload_bank_transactions():
         file.seek(0, 2)
         size = file.tell()
         file.seek(0)
+        print(f"[UPLOAD] File size: {size / 1024:.1f} KB")
 
         if size > MAX_FILE_SIZE:
             return jsonify({
@@ -344,11 +389,13 @@ def upload_bank_transactions():
 
         # Read file content
         content = file.read()
+        print(f"[UPLOAD] File content read in {time.time() - request_start:.2f}s")
 
         # Process the Excel file
         import_stats = process_bank_transactions_excel(content)
 
         if import_stats['errors']:
+            print(f"[UPLOAD] Import failed with errors: {import_stats['errors']}")
             return jsonify({
                 'success': False,
                 'error': import_stats['errors'][0],
@@ -356,11 +403,16 @@ def upload_bank_transactions():
             }), 400
 
         # Calculate monthly snapshots
+        print(f"[UPLOAD] Calculating monthly snapshots...")
         snapshot_stats = calculate_monthly_cash_snapshots()
+        print(f"[UPLOAD] Snapshots calculated in {time.time() - request_start:.2f}s")
 
         # Get total counts
         transaction_count = BankTransaction.query.count()
         snapshot_count = MonthlyCashSnapshot.query.count()
+
+        print(f"[UPLOAD] COMPLETE! Total time: {time.time() - request_start:.2f}s")
+        print(f"[UPLOAD] Stats: {transaction_count} transactions, {snapshot_count} snapshots")
 
         return jsonify({
             'success': True,
@@ -376,6 +428,9 @@ def upload_bank_transactions():
         })
 
     except Exception as e:
+        print(f"[UPLOAD] EXCEPTION: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
