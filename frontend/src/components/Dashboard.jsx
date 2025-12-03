@@ -11,6 +11,7 @@ import CashForecast from './CashForecast';
 import Anomalies from './Anomalies';
 import ProjectionWidget from './ProjectionWidget';
 import NotionSync from './NotionSync';
+import CsvUploadModal from './CsvUploadModal';
 
 function Dashboard() {
   const [isConnected, setIsConnected] = useState(false);
@@ -104,6 +105,7 @@ function Dashboard() {
         <div className="header-actions">
           {isConnected ? (
             <>
+              <CsvUploadModal />
               <NotionSync />
               <button
                 className="btn btn-secondary"

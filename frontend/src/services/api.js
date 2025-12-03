@@ -653,6 +653,56 @@ export const api = {
     });
     return response.json();
   },
+
+  // =============================================================================
+  // CSV UPLOAD
+  // =============================================================================
+
+  /**
+   * Preview a CSV file without importing
+   */
+  async previewCsv(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE}/api/upload/preview`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+    return response.json();
+  },
+
+  /**
+   * Upload and import a CSV file
+   */
+  async uploadCsv(file, type = 'invoices') {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+
+    const response = await fetch(`${API_BASE}/api/upload/csv`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+    return response.json();
+  },
+
+  /**
+   * Clear historical data
+   */
+  async clearHistoricalData(type = 'all', confirm = true) {
+    const response = await fetch(`${API_BASE}/api/upload/clear`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ type, confirm }),
+    });
+    return response.json();
+  },
 };
 
 // Xero deep link helpers
