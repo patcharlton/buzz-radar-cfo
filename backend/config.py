@@ -49,8 +49,6 @@ class Config:
         'accounting.reports.read',
         'accounting.contacts.read',
         'accounting.settings.read',
-        # Finance API scope for bank statement data access
-        'finance.statements.read',
     ]
 
     @classmethod

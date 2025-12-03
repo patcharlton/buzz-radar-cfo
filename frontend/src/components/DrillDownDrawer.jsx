@@ -52,7 +52,7 @@ export function DrillDownDrawer() {
   const [page, setPage] = useState(1);
   const [dateRange, setDateRange] = useState('90'); // days
   const [statusFilter, setStatusFilter] = useState('AUTHORISED'); // For receivables/payables
-  const [cashSource, setCashSource] = useState('statements'); // 'statements' = Finance API (bank feed), 'transactions' = Accounting API
+  const [cashSource, setCashSource] = useState('transactions'); // 'transactions' = Accounting API (Finance API requires special approval)
 
   // Date range presets
   const getDateRangeFilters = useCallback(() => {
@@ -360,18 +360,7 @@ export function DrillDownDrawer() {
                     className="pl-9"
                   />
                 </div>
-                {/* Data source for Cash - Bank Statements (historical) vs Transactions */}
-                {drillType === DRILL_TYPES.CASH && (
-                  <Select value={cashSource} onValueChange={setCashSource}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="Source" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="statements">Bank Statements</SelectItem>
-                      <SelectItem value="transactions">Transactions</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
+                {/* Note: Finance API Bank Statements require special Xero approval */}
                 {/* Status filter for Receivables/Payables */}
                 {[DRILL_TYPES.RECEIVABLES, DRILL_TYPES.PAYABLES].includes(drillType) && (
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
