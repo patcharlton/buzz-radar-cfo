@@ -472,3 +472,78 @@ def clear_historical_data():
             'success': False,
             'error': str(e)
         }), 500
+
+
+@upload_bp.route('/api/upload/dedupe', methods=['POST'])
+def dedupe_historical_data():
+    """
+    Remove duplicate invoices, keeping only the most recent version.
+
+    Duplicates are identified by invoice_number + invoice_type.
+    """
+    try:
+        from sqlalchemy import func
+
+        stats = {
+            'duplicates_found': 0,
+            'invoices_removed': 0,
+            'line_items_removed': 0,
+        }
+
+        # Find duplicate invoice_number + invoice_type combinations
+        duplicates = db.session.query(
+            HistoricalInvoice.invoice_number,
+            HistoricalInvoice.invoice_type,
+            func.count(HistoricalInvoice.id).label('count')
+        ).group_by(
+            HistoricalInvoice.invoice_number,
+            HistoricalInvoice.invoice_type
+        ).having(
+            func.count(HistoricalInvoice.id) > 1
+        ).all()
+
+        stats['duplicates_found'] = len(duplicates)
+
+        for invoice_number, invoice_type, count in duplicates:
+            # Get all invoices with this number/type, ordered by id (keep highest = most recent)
+            invoices = HistoricalInvoice.query.filter_by(
+                invoice_number=invoice_number,
+                invoice_type=invoice_type
+            ).order_by(HistoricalInvoice.id.desc()).all()
+
+            # Keep the first one (highest id), delete the rest
+            to_delete = invoices[1:]
+
+            for inv in to_delete:
+                # Delete line items first
+                deleted_items = HistoricalLineItem.query.filter_by(
+                    invoice_id=inv.id
+                ).delete()
+                stats['line_items_removed'] += deleted_items
+
+                # Delete the invoice
+                db.session.delete(inv)
+                stats['invoices_removed'] += 1
+
+        db.session.commit()
+
+        # Get updated counts
+        receivables_count = HistoricalInvoice.query.filter_by(invoice_type='receivable').count()
+        payables_count = HistoricalInvoice.query.filter_by(invoice_type='payable').count()
+
+        return jsonify({
+            'success': True,
+            'stats': stats,
+            'totals': {
+                'receivables': receivables_count,
+                'payables': payables_count,
+            },
+            'message': f"Removed {stats['invoices_removed']} duplicate invoices"
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
