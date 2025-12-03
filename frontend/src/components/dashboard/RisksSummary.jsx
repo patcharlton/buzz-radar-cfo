@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CardTitleTooltip } from '@/components/ui/info-tooltip';
 import {
   ShieldAlert,
   AlertTriangle,
@@ -113,10 +114,12 @@ export function RisksSummary() {
       <Card className="h-full">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4" />
-              Risk Management
-            </CardTitle>
+            <CardTitleTooltip description="Key business risks identified from financial data and business context. Click each risk to see details and mitigation strategies.">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4" />
+                Risk Management
+              </CardTitle>
+            </CardTitleTooltip>
             <div className="flex gap-1">
               {criticalCount > 0 && (
                 <Badge variant="destructive" className="text-xs">

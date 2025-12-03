@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MetricTooltip, CardTitleTooltip } from '@/components/ui/info-tooltip';
 import { Gauge, Flame, TrendingUp, Infinity, AlertTriangle, CheckCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
@@ -73,10 +74,12 @@ export function RunwayCard({ data, loading }) {
       <Card className="h-full">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Gauge className="h-4 w-4" />
-              Cash Runway
-            </CardTitle>
+            <CardTitleTooltip description="How long your current cash would last if all revenue stopped. A worst-case scenario metric for planning purposes.">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Gauge className="h-4 w-4" />
+                Cash Runway
+              </CardTitle>
+            </CardTitleTooltip>
             {calculation_basis && (
               <Badge variant="secondary" className="text-xs">
                 {calculation_basis}
@@ -121,7 +124,11 @@ export function RunwayCard({ data, loading }) {
             <div className="text-center p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
               <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
                 <Flame className="h-4 w-4" />
-                <span className="text-xs">Avg Expenses</span>
+                <MetricTooltip
+                  label="Avg Expenses"
+                  description="Your average monthly operating expenses based on recent P&L data. Includes salaries, rent, software, and other recurring costs."
+                  className="text-xs"
+                />
               </div>
               <p className="text-lg font-bold font-mono tabular-nums text-red-600 dark:text-red-400">
                 {formatCurrency(avg_monthly_burn)}
@@ -132,7 +139,11 @@ export function RunwayCard({ data, loading }) {
             <div className="text-center p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
               <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
                 <TrendingUp className="h-4 w-4" />
-                <span className="text-xs">Cash Balance</span>
+                <MetricTooltip
+                  label="Cash Balance"
+                  description="Current total cash across all bank accounts. This is what's available to cover expenses."
+                  className="text-xs"
+                />
               </div>
               <p className="text-lg font-bold font-mono tabular-nums">
                 {formatCurrency(current_cash)}

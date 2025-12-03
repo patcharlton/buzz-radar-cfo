@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MetricTooltip, CardTitleTooltip } from '@/components/ui/info-tooltip';
 import { TrendingUp, TrendingDown, BarChart3, DollarSign, Receipt, PiggyBank } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Sparkline } from '@/components/charts/Sparkline';
@@ -104,10 +105,12 @@ export function RevenueHistoryCard({ trends, loading }) {
       <Card className="h-full">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              P&L History
-            </CardTitle>
+            <CardTitleTooltip description="Historical revenue from your Profit & Loss statements. Shows trends, averages, and year-over-year comparisons.">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                P&L History
+              </CardTitle>
+            </CardTitleTooltip>
             <Badge variant="secondary" className="text-xs">
               {effectiveData.length} months
             </Badge>
@@ -161,7 +164,11 @@ export function RevenueHistoryCard({ trends, loading }) {
             <div className="text-center p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
               <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
                 <DollarSign className="h-3 w-3" />
-                <span className="text-xs">Average</span>
+                <MetricTooltip
+                  label="Average"
+                  description="Mean monthly revenue over the displayed period. Useful for setting baseline expectations."
+                  className="text-xs"
+                />
               </div>
               <p className="text-sm font-bold font-mono tabular-nums">
                 {formatCurrency(avgRevenue)}
@@ -171,7 +178,11 @@ export function RevenueHistoryCard({ trends, loading }) {
             <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
               <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400 mb-1">
                 <TrendingUp className="h-3 w-3" />
-                <span className="text-xs">Best</span>
+                <MetricTooltip
+                  label="Best"
+                  description="Highest revenue month in the period. Understand what drove this peak to replicate success."
+                  className="text-xs"
+                />
               </div>
               <p className="text-sm font-bold font-mono tabular-nums text-emerald-700 dark:text-emerald-300">
                 {formatCurrency(maxRevenue)}
@@ -182,7 +193,11 @@ export function RevenueHistoryCard({ trends, loading }) {
             <div className="text-center p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
               <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400 mb-1">
                 <TrendingDown className="h-3 w-3" />
-                <span className="text-xs">Lowest</span>
+                <MetricTooltip
+                  label="Lowest"
+                  description="Lowest revenue month in the period. Review for seasonality patterns or one-time events."
+                  className="text-xs"
+                />
               </div>
               <p className="text-sm font-bold font-mono tabular-nums text-amber-700 dark:text-amber-300">
                 {formatCurrency(minRevenue)}
@@ -196,7 +211,11 @@ export function RevenueHistoryCard({ trends, loading }) {
             <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
               <div className="flex items-center gap-1 text-muted-foreground mb-1">
                 <Receipt className="h-4 w-4" />
-                <span className="text-xs">Period Total</span>
+                <MetricTooltip
+                  label="Period Total"
+                  description="Sum of all revenue over the displayed period. Useful for understanding total business volume."
+                  className="text-xs"
+                />
               </div>
               <p className="text-lg font-bold font-mono tabular-nums">
                 {formatCurrency(totalRevenue)}
@@ -217,7 +236,11 @@ export function RevenueHistoryCard({ trends, loading }) {
                   : 'text-red-600 dark:text-red-400'
               }`}>
                 <PiggyBank className="h-4 w-4" />
-                <span className="text-xs">Trend</span>
+                <MetricTooltip
+                  label="Trend"
+                  description="Compares average revenue of recent months vs earlier months. Positive means revenue is growing over time."
+                  className="text-xs"
+                />
               </div>
               <div className="flex items-center gap-1">
                 {trendDirection === 'up' ? (

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ClickableAmount } from '@/components/ui/clickable-amount';
+import { MetricTooltip, CardTitleTooltip } from '@/components/ui/info-tooltip';
 import { ArrowDownLeft, Clock, AlertCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Sparkline } from '@/components/charts/Sparkline';
@@ -72,10 +73,12 @@ export function Receivables({ data, loading, trends, yoyComparison }) {
       <Card className={`h-full ${hasOverdue ? 'border-amber-200 dark:border-amber-900' : ''}`}>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <ArrowDownLeft className="h-4 w-4" />
-              Receivables
-            </CardTitle>
+            <CardTitleTooltip description="Money owed to you by customers. This is cash you're expecting to receive from unpaid invoices.">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <ArrowDownLeft className="h-4 w-4" />
+                Receivables
+              </CardTitle>
+            </CardTitleTooltip>
             <Badge variant="secondary" className="text-xs">
               {invoiceCount} invoice{invoiceCount !== 1 ? 's' : ''}
             </Badge>
@@ -153,19 +156,31 @@ export function Receivables({ data, loading, trends, yoyComparison }) {
           {/* Aging breakdown */}
           <div className="mt-4 grid grid-cols-3 gap-2">
             <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
-              <p className="text-xs text-muted-foreground">Current</p>
+              <MetricTooltip
+                label="Current"
+                description="Invoices not yet past their due date. These are healthy receivables."
+                className="text-xs text-muted-foreground"
+              />
               <p className="text-sm font-mono tabular-nums font-medium text-emerald-600 dark:text-emerald-400">
                 {formatCurrency(total - overdueTotal)}
               </p>
             </div>
             <div className="text-center p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
-              <p className="text-xs text-muted-foreground">30d</p>
+              <MetricTooltip
+                label="30d"
+                description="Invoices 1-30 days past due. Follow up promptly to maintain cash flow."
+                className="text-xs text-muted-foreground"
+              />
               <p className="text-sm font-mono tabular-nums font-medium text-amber-600 dark:text-amber-400">
                 {formatCurrency(data?.aging_30 || 0)}
               </p>
             </div>
             <div className="text-center p-2 bg-red-50 dark:bg-red-950/30 rounded-lg">
-              <p className="text-xs text-muted-foreground">60d+</p>
+              <MetricTooltip
+                label="60d+"
+                description="Invoices more than 60 days overdue. High risk of non-payment - consider escalation."
+                className="text-xs text-muted-foreground"
+              />
               <p className="text-sm font-mono tabular-nums font-medium text-red-600 dark:text-red-400">
                 {formatCurrency(data?.aging_60_plus || 0)}
               </p>

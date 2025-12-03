@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ClickableAmount } from '@/components/ui/clickable-amount';
+import { MetricTooltip, CardTitleTooltip } from '@/components/ui/info-tooltip';
 import {
   Tooltip,
   TooltipContent,
@@ -117,10 +118,12 @@ export function Payables({ data, loading, trends, yoyComparison }) {
       <Card className="h-full flex flex-col">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <ArrowUpRight className="h-4 w-4" />
-              Payables
-            </CardTitle>
+            <CardTitleTooltip description="Money you owe to suppliers and vendors. These are bills and expenses that need to be paid.">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <ArrowUpRight className="h-4 w-4" />
+                Payables
+              </CardTitle>
+            </CardTitleTooltip>
             <Badge variant="secondary" className="text-xs">
               {billCount} bill{billCount !== 1 ? 's' : ''}
             </Badge>
@@ -204,19 +207,31 @@ export function Payables({ data, loading, trends, yoyComparison }) {
           {/* Payment schedule */}
           <div className="mt-4 grid grid-cols-3 gap-2">
             <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
-              <p className="text-xs text-muted-foreground">This week</p>
+              <MetricTooltip
+                label="This week"
+                description="Bills due within the next 7 days. Prioritize these to avoid late payments."
+                className="text-xs text-muted-foreground"
+              />
               <p className="text-sm font-mono tabular-nums font-medium text-emerald-600 dark:text-emerald-400">
                 {formatCurrency(dueThisWeek)}
               </p>
             </div>
             <div className="text-center p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-              <p className="text-xs text-muted-foreground">Next week</p>
+              <MetricTooltip
+                label="Next week"
+                description="Bills coming due in 8-14 days. Plan your cash flow accordingly."
+                className="text-xs text-muted-foreground"
+              />
               <p className="text-sm font-mono tabular-nums font-medium text-blue-600 dark:text-blue-400">
                 {formatCurrency(data?.due_next_week || 0)}
               </p>
             </div>
             <div className="text-center p-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
-              <p className="text-xs text-muted-foreground">Later</p>
+              <MetricTooltip
+                label="Later"
+                description="Bills due more than 2 weeks from now. Less urgent but should be on your radar."
+                className="text-xs text-muted-foreground"
+              />
               <p className="text-sm font-mono tabular-nums font-medium">
                 {formatCurrency(data?.due_later || 0)}
               </p>

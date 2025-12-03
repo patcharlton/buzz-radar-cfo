@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ClickableAmount } from '@/components/ui/clickable-amount';
+import { MetricTooltip, CardTitleTooltip } from '@/components/ui/info-tooltip';
 import { Landmark, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Sparkline } from '@/components/charts/Sparkline';
@@ -77,10 +78,12 @@ export function CashPosition({ data, loading, trends, yoyComparison }) {
       <Card className={`h-full ${isLow ? 'border-red-200 dark:border-red-900' : ''}`}>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Landmark className="h-4 w-4" />
-              Cash Position
-            </CardTitle>
+            <CardTitleTooltip description="Current total cash available across all bank accounts. Click the amount to see recent transactions.">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Landmark className="h-4 w-4" />
+                Cash Position
+              </CardTitle>
+            </CardTitleTooltip>
             {isLow && (
               <Badge variant="destructive" className="gap-1">
                 <AlertTriangle className="h-3 w-3" />
@@ -161,7 +164,11 @@ export function CashPosition({ data, loading, trends, yoyComparison }) {
           {/* Min reserve indicator */}
           <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Min Reserve</span>
+              <MetricTooltip
+                label="Min Reserve"
+                description="The minimum cash buffer recommended to maintain for operational safety. This covers approximately 2-3 months of fixed costs."
+                className="text-muted-foreground"
+              />
               <span className="font-mono tabular-nums text-muted-foreground">
                 {formatCurrency(minReserve)}
               </span>

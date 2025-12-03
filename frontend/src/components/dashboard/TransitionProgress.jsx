@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MetricTooltip, CardTitleTooltip } from '@/components/ui/info-tooltip';
 import {
   Rocket,
   Target,
@@ -93,10 +94,12 @@ export function TransitionProgress() {
       <Card className="h-full">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Rocket className="h-4 w-4" />
-              Platform Transition
-            </CardTitle>
+            <CardTitleTooltip description="Progress towards shifting from services revenue to recurring platform revenue. Higher platform % means more predictable, scalable income.">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Rocket className="h-4 w-4" />
+                Platform Transition
+              </CardTitle>
+            </CardTitleTooltip>
             <Badge variant="outline" className="text-xs">
               {data?.current_state || 'Services-led'}
             </Badge>
@@ -106,7 +109,11 @@ export function TransitionProgress() {
           {/* Revenue Mix Progress */}
           <div>
             <div className="flex items-center justify-between text-xs mb-2">
-              <span className="text-muted-foreground">Revenue Mix</span>
+              <MetricTooltip
+                label="Revenue Mix"
+                description="The split between recurring platform/SaaS revenue and one-time services revenue. Platform revenue is more valuable for business valuation."
+                className="text-muted-foreground"
+              />
               <span className="font-medium">
                 {current.platform}% Platform / {current.services}% Services
               </span>

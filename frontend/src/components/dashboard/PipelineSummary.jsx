@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MetricTooltip, CardTitleTooltip } from '@/components/ui/info-tooltip';
 import {
   Target,
   AlertTriangle,
@@ -85,10 +86,12 @@ export function PipelineSummary() {
       <Card className="h-full">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Target className="h-4 w-4" />
-              Sales Pipeline
-            </CardTitle>
+            <CardTitleTooltip description="Active sales opportunities being pursued. Shows total deal value, probability-adjusted amounts, and upcoming close dates.">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Target className="h-4 w-4" />
+                Sales Pipeline
+              </CardTitle>
+            </CardTitleTooltip>
             <Badge variant="secondary" className="text-xs">
               {pipeline.deal_count || 0} deals
             </Badge>
@@ -98,13 +101,21 @@ export function PipelineSummary() {
           {/* Pipeline Value Summary */}
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
-              <p className="text-xs text-muted-foreground mb-1">Total Pipeline</p>
+              <MetricTooltip
+                label="Total Pipeline"
+                description="The combined value of all active deals in your sales pipeline, regardless of likelihood to close."
+                className="text-xs text-muted-foreground mb-1"
+              />
               <p className="text-xl font-bold font-mono tabular-nums">
                 {formatCurrency(pipeline.total_value || 0)}
               </p>
             </div>
             <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
-              <p className="text-xs text-muted-foreground mb-1">Weighted Value</p>
+              <MetricTooltip
+                label="Weighted Value"
+                description="Pipeline value adjusted by probability of closing. Each deal's value is multiplied by its likelihood score (e.g., £100k at 70% = £70k weighted)."
+                className="text-xs text-muted-foreground mb-1"
+              />
               <p className="text-xl font-bold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
                 {formatCurrency(pipeline.weighted_value || 0)}
               </p>
@@ -115,9 +126,11 @@ export function PipelineSummary() {
           <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-100 dark:border-blue-900">
             <div className="flex items-center gap-2 mb-1">
               <TrendingUp className="h-4 w-4 text-blue-500" />
-              <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                High Confidence (8+/10)
-              </span>
+              <MetricTooltip
+                label="High Confidence (8+/10)"
+                description="Total value of deals rated 8 or higher likelihood to close. These are your most reliable expected revenues for forecasting."
+                className="text-sm font-medium text-blue-800 dark:text-blue-200"
+              />
             </div>
             <p className="text-lg font-bold font-mono tabular-nums text-blue-600 dark:text-blue-400">
               {formatCurrency(pipeline.high_confidence_value || 0)}
