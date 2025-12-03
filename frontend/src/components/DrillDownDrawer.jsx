@@ -52,7 +52,7 @@ export function DrillDownDrawer() {
   const [page, setPage] = useState(1);
   // Default to 'all' for receivables/payables to show historical CSV data
   const [dateRange, setDateRange] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('AUTHORISED'); // For receivables/payables
+  const [statusFilter, setStatusFilter] = useState('ALL'); // Default to all statuses to show historical data
   const [cashSource, setCashSource] = useState('transactions'); // 'transactions' = Accounting API (Finance API requires special approval)
 
   // Date range presets
