@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, BarChart3, DollarSign, Receipt, PiggyBank } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Sparkline } from '@/components/charts/Sparkline';
 import { YoYBadge } from '@/components/ui/yoy-badge';
@@ -14,12 +15,13 @@ export function RevenueHistoryCard({ trends, loading }) {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            Revenue History
+            P&L History
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-10 w-3/4 mb-2" />
-          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full mb-4" />
+          <Skeleton className="h-20 w-full" />
         </CardContent>
       </Card>
     );
@@ -35,7 +37,7 @@ export function RevenueHistoryCard({ trends, loading }) {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            Revenue History
+            P&L History
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -47,10 +49,40 @@ export function RevenueHistoryCard({ trends, loading }) {
     );
   }
 
-  // Calculate latest and previous for comparison
-  const latestRevenue = revenueData[revenueData.length - 1]?.value || 0;
-  const previousRevenue = revenueData.length > 1 ? revenueData[revenueData.length - 2]?.value : null;
-  const momChange = previousRevenue ? ((latestRevenue - previousRevenue) / previousRevenue) * 100 : null;
+  // Get the last 12 months or available data
+  const displayData = revenueData.slice(-12);
+
+  // Calculate statistics
+  const latestRevenue = displayData[displayData.length - 1]?.value || 0;
+  const previousRevenue = displayData.length > 1 ? displayData[displayData.length - 2]?.value : null;
+  const momChange = previousRevenue && previousRevenue > 0
+    ? ((latestRevenue - previousRevenue) / previousRevenue) * 100
+    : null;
+
+  // Calculate averages and totals
+  const totalRevenue = displayData.reduce((sum, d) => sum + (d.value || 0), 0);
+  const avgRevenue = displayData.length > 0 ? totalRevenue / displayData.length : 0;
+  const maxRevenue = Math.max(...displayData.map(d => d.value || 0));
+  const minRevenue = Math.min(...displayData.map(d => d.value || 0));
+
+  // Find best and worst months
+  const bestMonth = displayData.find(d => d.value === maxRevenue);
+  const worstMonth = displayData.find(d => d.value === minRevenue);
+
+  // Calculate growth trend (first half vs second half)
+  const midPoint = Math.floor(displayData.length / 2);
+  const firstHalf = displayData.slice(0, midPoint);
+  const secondHalf = displayData.slice(midPoint);
+  const firstHalfAvg = firstHalf.length > 0
+    ? firstHalf.reduce((sum, d) => sum + (d.value || 0), 0) / firstHalf.length
+    : 0;
+  const secondHalfAvg = secondHalf.length > 0
+    ? secondHalf.reduce((sum, d) => sum + (d.value || 0), 0) / secondHalf.length
+    : 0;
+  const trendDirection = secondHalfAvg >= firstHalfAvg ? 'up' : 'down';
+  const trendPct = firstHalfAvg > 0
+    ? ((secondHalfAvg - firstHalfAvg) / firstHalfAvg) * 100
+    : 0;
 
   return (
     <motion.div
@@ -64,49 +96,136 @@ export function RevenueHistoryCard({ trends, loading }) {
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
-              Revenue History
+              P&L History
             </CardTitle>
-            {latestMonth && (
-              <span className="text-xs text-muted-foreground">
-                {latestMonth}
-              </span>
-            )}
+            <Badge variant="secondary" className="text-xs">
+              {displayData.length} months
+            </Badge>
           </div>
         </CardHeader>
-        <CardContent>
-          {/* Latest revenue */}
-          <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-2xl font-bold font-mono tabular-nums">
-              {formatCurrency(latestRevenue)}
-            </span>
-            {momChange !== null && (
-              <span className={`text-sm flex items-center gap-0.5 ${momChange >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                {momChange >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                {Math.abs(momChange).toFixed(1)}% MoM
+        <CardContent className="space-y-4">
+          {/* Latest month highlight */}
+          <div className="p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg border border-indigo-200 dark:border-indigo-900">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                {latestMonth} Revenue
               </span>
+              {momChange !== null && (
+                <Badge
+                  variant={momChange >= 0 ? 'default' : 'destructive'}
+                  className="text-xs gap-0.5"
+                >
+                  {momChange >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                  {Math.abs(momChange).toFixed(1)}% MoM
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold font-mono tabular-nums text-indigo-700 dark:text-indigo-300">
+                {formatCurrency(latestRevenue)}
+              </span>
+            </div>
+            {/* YoY comparison */}
+            {yoyComparisons?.revenue !== null && yoyComparisons?.revenue !== undefined && (
+              <div className="mt-2">
+                <YoYBadge
+                  percentage={yoyComparisons.revenue}
+                  comparisonMonth={yoyComparisons.comparison_month}
+                />
+              </div>
             )}
           </div>
 
-          {/* YoY comparison */}
-          {yoyComparisons?.revenue !== null && yoyComparisons?.revenue !== undefined && (
-            <div className="mb-3">
-              <YoYBadge
-                percentage={yoyComparisons.revenue}
-                comparisonMonth={yoyComparisons.comparison_month}
-              />
-            </div>
-          )}
-
-          {/* Sparkline */}
-          <div className="mt-3">
+          {/* Revenue Sparkline */}
+          <div>
             <Sparkline
-              data={revenueData}
+              data={displayData}
               color="#6366f1"
-              height={50}
+              height={60}
             />
-            <p className="text-xs text-muted-foreground text-center mt-1">
-              {revenueData.length}-month revenue trend
-            </p>
+          </div>
+
+          {/* Key metrics grid */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="text-center p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
+              <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
+                <DollarSign className="h-3 w-3" />
+                <span className="text-xs">Average</span>
+              </div>
+              <p className="text-sm font-bold font-mono tabular-nums">
+                {formatCurrency(avgRevenue)}
+              </p>
+            </div>
+
+            <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
+              <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400 mb-1">
+                <TrendingUp className="h-3 w-3" />
+                <span className="text-xs">Best</span>
+              </div>
+              <p className="text-sm font-bold font-mono tabular-nums text-emerald-700 dark:text-emerald-300">
+                {formatCurrency(maxRevenue)}
+              </p>
+              <p className="text-xs text-muted-foreground">{bestMonth?.month}</p>
+            </div>
+
+            <div className="text-center p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+              <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400 mb-1">
+                <TrendingDown className="h-3 w-3" />
+                <span className="text-xs">Lowest</span>
+              </div>
+              <p className="text-sm font-bold font-mono tabular-nums text-amber-700 dark:text-amber-300">
+                {formatCurrency(minRevenue)}
+              </p>
+              <p className="text-xs text-muted-foreground">{worstMonth?.month}</p>
+            </div>
+          </div>
+
+          {/* Period totals */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
+              <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                <Receipt className="h-4 w-4" />
+                <span className="text-xs">Period Total</span>
+              </div>
+              <p className="text-lg font-bold font-mono tabular-nums">
+                {formatCurrency(totalRevenue)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Last {displayData.length} months
+              </p>
+            </div>
+
+            <div className={`p-3 rounded-lg ${
+              trendDirection === 'up'
+                ? 'bg-emerald-50 dark:bg-emerald-950/30'
+                : 'bg-red-50 dark:bg-red-950/30'
+            }`}>
+              <div className={`flex items-center gap-1 mb-1 ${
+                trendDirection === 'up'
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-red-600 dark:text-red-400'
+              }`}>
+                <PiggyBank className="h-4 w-4" />
+                <span className="text-xs">Trend</span>
+              </div>
+              <div className="flex items-center gap-1">
+                {trendDirection === 'up' ? (
+                  <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                ) : (
+                  <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
+                )}
+                <span className={`text-lg font-bold font-mono tabular-nums ${
+                  trendDirection === 'up'
+                    ? 'text-emerald-700 dark:text-emerald-300'
+                    : 'text-red-700 dark:text-red-300'
+                }`}>
+                  {trendPct >= 0 ? '+' : ''}{trendPct.toFixed(1)}%
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {trendDirection === 'up' ? 'Growing' : 'Declining'}
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
