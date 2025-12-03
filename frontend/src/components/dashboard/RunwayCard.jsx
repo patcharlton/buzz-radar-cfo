@@ -40,10 +40,10 @@ export function RunwayCard({ data, loading }) {
     );
   }
 
-  const { runway_months, avg_monthly_burn, current_cash, runway_status, months_analyzed } = data;
+  const { runway_months, avg_monthly_burn, current_cash, is_profitable, calculation_basis, months_analyzed } = data;
 
   // Determine runway status and styling
-  const isPositiveCashFlow = runway_status === 'positive_cash_flow';
+  const isPositiveCashFlow = is_profitable === true;
   const isHealthy = runway_months === null || runway_months > 12;
   const isWarning = runway_months !== null && runway_months <= 12 && runway_months > 6;
   const isCritical = runway_months !== null && runway_months <= 6;
@@ -76,9 +76,9 @@ export function RunwayCard({ data, loading }) {
               <Gauge className="h-4 w-4" />
               Cash Runway
             </CardTitle>
-            {months_analyzed > 0 && (
+            {calculation_basis && (
               <Badge variant="secondary" className="text-xs">
-                Based on {months_analyzed} months
+                {calculation_basis}
               </Badge>
             )}
           </div>
@@ -120,14 +120,12 @@ export function RunwayCard({ data, loading }) {
             <div className="text-center p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
               <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
                 <Flame className="h-4 w-4" />
-                <span className="text-xs">Burn Rate</span>
+                <span className="text-xs">Avg Expenses</span>
               </div>
-              <p className={`text-lg font-bold font-mono tabular-nums ${
-                avg_monthly_burn > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'
-              }`}>
-                {avg_monthly_burn > 0 ? '-' : '+'}{formatCurrency(Math.abs(avg_monthly_burn))}
+              <p className="text-lg font-bold font-mono tabular-nums text-red-600 dark:text-red-400">
+                {formatCurrency(avg_monthly_burn)}
               </p>
-              <p className="text-xs text-muted-foreground">/month avg</p>
+              <p className="text-xs text-muted-foreground">/month (P&L)</p>
             </div>
 
             <div className="text-center p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">

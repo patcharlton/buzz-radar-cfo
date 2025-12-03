@@ -172,15 +172,17 @@ def get_revenue_history():
 @require_xero_connection
 def get_runway():
     """
-    Calculate cash runway based on recent burn rate.
+    Calculate cash runway based on P&L expense average.
 
-    Uses last 6 complete months of data to calculate average monthly burn.
-    Burn = expenses - revenue (positive = losing money, negative = profitable)
+    Uses get_monthly_expenses() to get accurate expense data from P&L reports,
+    which includes ALL expenses: PAYE, salaries, direct debits, and vendor bills.
 
     Returns:
-        runway_months: Months of runway at current burn rate (null if cash flow positive)
-        avg_monthly_burn: Average monthly burn rate
+        runway_months: Months of runway at current burn rate (null if profitable)
+        avg_monthly_burn: Average monthly expenses from P&L
         current_cash: Current cash position
+        is_profitable: True if revenue exceeds expenses
+        calculation_basis: Description of calculation method
     """
     try:
         xero_client = XeroClient()
@@ -189,53 +191,57 @@ def get_runway():
         bank_summary = xero_client.get_bank_summary()
         current_cash = float(bank_summary.get('total_balance', 0))
 
-        # Get last 6 months of snapshots for burn calculation
-        snapshots = MonthlySnapshot.query.filter(
-            MonthlySnapshot.revenue.isnot(None),
-            MonthlySnapshot.expenses.isnot(None)
-        ).order_by(
-            MonthlySnapshot.snapshot_date.desc()
-        ).limit(6).all()
+        # Get 6-month P&L data - this includes ALL expenses (PAYE, salaries, etc.)
+        monthly_data = xero_client.get_monthly_expenses(num_months=6)
+        months = monthly_data.get('months', [])
 
-        if not snapshots:
-            # Fall back to live Xero data
-            monthly_data = xero_client.get_monthly_expenses(num_months=6)
-            months = monthly_data.get('months', [])
-            complete_months = [m for m in months if not m.get('is_partial', False)]
+        # Use only complete months (exclude current partial month)
+        complete_months = [m for m in months if not m.get('is_partial', False)]
+        months_analyzed = len(complete_months)
 
-            if complete_months:
-                burns = [m['expenses'] - m['revenue'] for m in complete_months]
-                avg_monthly_burn = sum(burns) / len(burns)
+        if complete_months:
+            # Use P&L average expenses - this is the accurate figure
+            avg_monthly_burn = monthly_data.get('average_monthly_expenses', 0)
+
+            # Calculate average revenue for profitability check
+            avg_revenue = sum(m['revenue'] for m in complete_months) / len(complete_months)
+            is_profitable = avg_revenue >= avg_monthly_burn
+        else:
+            # No complete months - use current month data
+            if months:
+                avg_monthly_burn = months[0].get('expenses', 0)
+                avg_revenue = months[0].get('revenue', 0)
+                is_profitable = avg_revenue >= avg_monthly_burn
+                months_analyzed = 1
             else:
                 avg_monthly_burn = 0
-        else:
-            burns = []
-            for s in snapshots:
-                expenses = float(s.expenses) if s.expenses else 0
-                revenue = float(s.revenue) if s.revenue else 0
-                burns.append(expenses - revenue)
-
-            avg_monthly_burn = sum(burns) / len(burns) if burns else 0
+                avg_revenue = 0
+                is_profitable = True
+                months_analyzed = 0
 
         # Calculate runway
-        if avg_monthly_burn <= 0:
-            # Cash flow positive - infinite runway
+        if is_profitable or avg_monthly_burn <= 0:
+            # Cash flow positive - no runway concern
             runway_months = None
-            runway_status = 'positive_cash_flow'
         elif current_cash <= 0:
             runway_months = 0
-            runway_status = 'no_cash'
         else:
-            runway_months = current_cash / avg_monthly_burn
-            runway_status = 'calculated'
+            # Net burn = expenses - revenue
+            net_burn = avg_monthly_burn - avg_revenue
+            if net_burn > 0:
+                runway_months = current_cash / net_burn
+            else:
+                runway_months = None
+                is_profitable = True
 
         return jsonify({
             'success': True,
             'runway_months': round(runway_months, 1) if runway_months is not None else None,
             'avg_monthly_burn': round(avg_monthly_burn, 2),
             'current_cash': round(current_cash, 2),
-            'runway_status': runway_status,
-            'months_analyzed': len(snapshots) if snapshots else len(complete_months) if 'complete_months' in dir() else 0
+            'is_profitable': is_profitable,
+            'calculation_basis': f'{months_analyzed}-month P&L average',
+            'months_analyzed': months_analyzed
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
