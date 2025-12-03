@@ -12,12 +12,19 @@ import {
   FileText,
   RefreshCw,
 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, subDays, subMonths, startOfYear } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useDrillDown, DRILL_TYPES } from '@/contexts/DrillDownContext';
 import api, { xeroLinks } from '@/services/api';
 import { formatCurrency } from '@/lib/utils';
@@ -43,6 +50,40 @@ export function DrillDownDrawer() {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [dateRange, setDateRange] = useState('90'); // days
+
+  // Date range presets
+  const getDateRangeFilters = useCallback(() => {
+    const today = new Date();
+    let fromDate;
+
+    switch (dateRange) {
+      case '30':
+        fromDate = subDays(today, 30);
+        break;
+      case '90':
+        fromDate = subDays(today, 90);
+        break;
+      case '180':
+        fromDate = subMonths(today, 6);
+        break;
+      case '365':
+        fromDate = subMonths(today, 12);
+        break;
+      case 'ytd':
+        fromDate = startOfYear(today);
+        break;
+      case 'all':
+        return {}; // No date filter
+      default:
+        fromDate = subDays(today, 90);
+    }
+
+    return {
+      fromDate: format(fromDate, 'yyyy-MM-dd'),
+      toDate: format(today, 'yyyy-MM-dd'),
+    };
+  }, [dateRange]);
 
   // Fetch data when drill type or filters change
   useEffect(() => {
@@ -54,28 +95,30 @@ export function DrillDownDrawer() {
 
       try {
         let result;
+        const dateFilters = getDateRangeFilters();
+        const combinedFilters = { ...filters, ...dateFilters };
 
         switch (drillType) {
           case DRILL_TYPES.CASH:
-            result = await api.drillCash({ ...filters, page });
+            result = await api.drillCash({ ...combinedFilters, page });
             break;
           case DRILL_TYPES.RECEIVABLES:
-            result = await api.drillReceivables({ ...filters, page });
+            result = await api.drillReceivables({ ...combinedFilters, page });
             break;
           case DRILL_TYPES.RECEIVABLES_DETAIL:
             result = await api.drillReceivablesDetail(filters.invoiceId);
             break;
           case DRILL_TYPES.PAYABLES:
-            result = await api.drillPayables({ ...filters, page });
+            result = await api.drillPayables({ ...combinedFilters, page });
             break;
           case DRILL_TYPES.PAYABLES_DETAIL:
             result = await api.drillPayablesDetail(filters.invoiceId);
             break;
           case DRILL_TYPES.PNL:
-            result = await api.drillPnl(filters);
+            result = await api.drillPnl(combinedFilters);
             break;
           case DRILL_TYPES.PNL_ACCOUNT:
-            result = await api.drillPnlAccount(filters.accountId, { ...filters, page });
+            result = await api.drillPnlAccount(filters.accountId, { ...combinedFilters, page });
             break;
           default:
             throw new Error(`Unknown drill type: ${drillType}`);
@@ -94,12 +137,12 @@ export function DrillDownDrawer() {
     };
 
     fetchData();
-  }, [isOpen, drillType, filters, page]);
+  }, [isOpen, drillType, filters, page, dateRange, getDateRangeFilters]);
 
-  // Reset page when filters change
+  // Reset page when filters or date range change
   useEffect(() => {
     setPage(1);
-  }, [filters]);
+  }, [filters, dateRange]);
 
   // Filter data client-side by search query
   const filteredData = useMemo(() => {
@@ -292,7 +335,7 @@ export function DrillDownDrawer() {
                 <SummaryBar summary={filteredData.summary} drillType={drillType} />
               )}
 
-              {/* Search and filters */}
+              {/* Search, date filter, and export */}
               <div className="flex items-center gap-2 mt-3">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -303,6 +346,22 @@ export function DrillDownDrawer() {
                     className="pl-9"
                   />
                 </div>
+                {/* Date range filter - show for CASH, RECEIVABLES, PAYABLES, PNL */}
+                {[DRILL_TYPES.CASH, DRILL_TYPES.RECEIVABLES, DRILL_TYPES.PAYABLES, DRILL_TYPES.PNL, DRILL_TYPES.PNL_ACCOUNT].includes(drillType) && (
+                  <Select value={dateRange} onValueChange={setDateRange}>
+                    <SelectTrigger className="w-[130px]">
+                      <SelectValue placeholder="Date range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30">Last 30 days</SelectItem>
+                      <SelectItem value="90">Last 90 days</SelectItem>
+                      <SelectItem value="180">Last 6 months</SelectItem>
+                      <SelectItem value="365">Last 12 months</SelectItem>
+                      <SelectItem value="ytd">Year to date</SelectItem>
+                      <SelectItem value="all">All time</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
                 <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5">
                   <Download className="h-4 w-4" />
                   CSV
@@ -312,7 +371,7 @@ export function DrillDownDrawer() {
               {/* Date range display */}
               {(filteredData?.from_date || filteredData?.to_date) && (
                 <p className="text-xs text-muted-foreground mt-2">
-                  {filteredData.from_date && formatDate(filteredData.from_date)}
+                  Showing: {filteredData.from_date && formatDate(filteredData.from_date)}
                   {filteredData.from_date && filteredData.to_date && ' – '}
                   {filteredData.to_date && formatDate(filteredData.to_date)}
                 </p>

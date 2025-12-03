@@ -55,7 +55,7 @@ def drill_cash():
     """
     try:
         today = date.today()
-        from_date = parse_date(request.args.get('from_date'), today - timedelta(days=30))
+        from_date = parse_date(request.args.get('from_date'), today - timedelta(days=90))
         to_date = parse_date(request.args.get('to_date'), today)
         account_id = request.args.get('account_id')
         page = request.args.get('page', 1, type=int)
