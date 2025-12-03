@@ -177,9 +177,13 @@ def get_runway():
     Uses get_monthly_expenses() to get accurate expense data from P&L reports,
     which includes ALL expenses: PAYE, salaries, direct debits, and vendor bills.
 
+    Runway is calculated as: current_cash / avg_monthly_expenses
+    This shows how long cash would last if revenue stopped completely.
+
     Returns:
-        runway_months: Months of runway at current burn rate (null if profitable)
-        avg_monthly_burn: Average monthly expenses from P&L
+        runway_months: Months cash would last at current expense rate
+        avg_monthly_expenses: Average monthly expenses from P&L
+        avg_monthly_revenue: Average monthly revenue
         current_cash: Current cash position
         is_profitable: True if revenue exceeds expenses
         calculation_basis: Description of calculation method
@@ -201,43 +205,38 @@ def get_runway():
 
         if complete_months:
             # Use P&L average expenses - this is the accurate figure
-            avg_monthly_burn = monthly_data.get('average_monthly_expenses', 0)
+            avg_monthly_expenses = monthly_data.get('average_monthly_expenses', 0)
 
-            # Calculate average revenue for profitability check
-            avg_revenue = sum(m['revenue'] for m in complete_months) / len(complete_months)
-            is_profitable = avg_revenue >= avg_monthly_burn
+            # Calculate average revenue
+            avg_monthly_revenue = sum(m['revenue'] for m in complete_months) / len(complete_months)
+            is_profitable = avg_monthly_revenue >= avg_monthly_expenses
         else:
             # No complete months - use current month data
             if months:
-                avg_monthly_burn = months[0].get('expenses', 0)
-                avg_revenue = months[0].get('revenue', 0)
-                is_profitable = avg_revenue >= avg_monthly_burn
+                avg_monthly_expenses = months[0].get('expenses', 0)
+                avg_monthly_revenue = months[0].get('revenue', 0)
+                is_profitable = avg_monthly_revenue >= avg_monthly_expenses
                 months_analyzed = 1
             else:
-                avg_monthly_burn = 0
-                avg_revenue = 0
+                avg_monthly_expenses = 0
+                avg_monthly_revenue = 0
                 is_profitable = True
                 months_analyzed = 0
 
-        # Calculate runway
-        if is_profitable or avg_monthly_burn <= 0:
-            # Cash flow positive - no runway concern
-            runway_months = None
+        # Calculate runway based on TOTAL expenses (not net burn)
+        # This answers: "How long would cash last if revenue stopped?"
+        if avg_monthly_expenses <= 0:
+            runway_months = None  # No expenses = infinite runway
         elif current_cash <= 0:
             runway_months = 0
         else:
-            # Net burn = expenses - revenue
-            net_burn = avg_monthly_burn - avg_revenue
-            if net_burn > 0:
-                runway_months = current_cash / net_burn
-            else:
-                runway_months = None
-                is_profitable = True
+            runway_months = current_cash / avg_monthly_expenses
 
         return jsonify({
             'success': True,
             'runway_months': round(runway_months, 1) if runway_months is not None else None,
-            'avg_monthly_burn': round(avg_monthly_burn, 2),
+            'avg_monthly_burn': round(avg_monthly_expenses, 2),
+            'avg_monthly_revenue': round(avg_monthly_revenue, 2),
             'current_cash': round(current_cash, 2),
             'is_profitable': is_profitable,
             'calculation_basis': f'{months_analyzed}-month P&L average',
