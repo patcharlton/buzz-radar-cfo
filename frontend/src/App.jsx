@@ -4,7 +4,6 @@ import { Shell } from '@/components/layout/Shell';
 import { CashPosition } from '@/components/dashboard/CashPosition';
 import { Receivables } from '@/components/dashboard/Receivables';
 import { Payables } from '@/components/dashboard/Payables';
-import { InvoiceTable } from '@/components/dashboard/InvoiceTable';
 import { AiCfoPanel } from '@/components/dashboard/AiCfoPanel';
 import { PipelineSummary } from '@/components/dashboard/PipelineSummary';
 import { RisksSummary } from '@/components/dashboard/RisksSummary';
@@ -266,12 +265,6 @@ function AppContent({
 
             {/* Cash Flow Chart - Full Width */}
             <CashFlowChart />
-
-            {/* Invoice Table - Full Width */}
-            <InvoiceTable
-              invoices={dashboardData.receivables?.invoices}
-              loading={!dashboardData}
-            />
           </div>
         )}
       </Shell>
