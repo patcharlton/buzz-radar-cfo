@@ -207,6 +207,17 @@ class XeroClient:
         revenue = 0
         expenses = 0
         net_profit = 0
+        gross_profit = 0
+
+        # Income section titles
+        income_titles = ['Income', 'Revenue', 'Sales', 'Trading Income', 'Other Income']
+        # Expense section titles (Xero uses various names)
+        expense_titles = [
+            'Expense', 'Expenses', 'Operating Expenses', 'Overheads',
+            'Direct Costs', 'Cost of Sales', 'Cost of Goods Sold',
+            'Administrative Expenses', 'Other Expenses', 'Less Cost of Sales',
+            'Less Operating Expenses'
+        ]
 
         reports = data.get('Reports', [])
         if reports:
@@ -215,7 +226,7 @@ class XeroClient:
 
             for section in rows:
                 row_type = section.get('RowType')
-                title = section.get('Title', '')
+                title = section.get('Title', '').strip()
 
                 if row_type == 'Section':
                     for row in section.get('Rows', []):
@@ -228,27 +239,49 @@ class XeroClient:
                                 except ValueError:
                                     value = 0
 
-                                if 'Income' in title or 'Revenue' in title:
-                                    revenue = value
-                                elif 'Expense' in title or 'Operating' in title:
-                                    expenses = abs(value)
+                                # Check if this is an income section
+                                is_income = any(inc.lower() in title.lower() for inc in income_titles)
+                                # Check if this is an expense section
+                                is_expense = any(exp.lower() in title.lower() for exp in expense_titles)
+
+                                if is_income and not is_expense:
+                                    revenue += value
+                                elif is_expense:
+                                    # Expenses are sometimes negative in Xero, take absolute value
+                                    expenses += abs(value)
 
                 elif row_type == 'Row':
                     cells = section.get('Cells', [])
-                    if cells and 'Net Profit' in str(cells[0].get('Value', '')):
+                    if cells:
+                        label = str(cells[0].get('Value', '')).strip()
                         value_str = cells[-1].get('Value', '0')
                         try:
-                            net_profit = float(value_str) if value_str else 0
+                            value = float(value_str) if value_str else 0
                         except ValueError:
-                            net_profit = 0
+                            value = 0
 
-        if net_profit == 0:
+                        if 'Net Profit' in label or 'Net Loss' in label:
+                            net_profit = value
+                        elif 'Gross Profit' in label:
+                            gross_profit = value
+
+        # If we got gross profit but no expenses calculated, derive expenses
+        # Gross Profit = Revenue - Cost of Sales
+        # So if we have revenue and gross profit, Cost of Sales = Revenue - Gross Profit
+        if gross_profit > 0 and expenses == 0 and revenue > 0:
+            # This means we missed parsing expenses - use net profit to derive
+            if net_profit != 0:
+                expenses = revenue - net_profit
+
+        # Fallback: calculate net profit from revenue - expenses
+        if net_profit == 0 and (revenue > 0 or expenses > 0):
             net_profit = revenue - expenses
 
         return {
             'revenue': revenue,
             'expenses': expenses,
             'net_profit': net_profit,
+            'gross_profit': gross_profit,
             'from_date': from_date.isoformat(),
             'to_date': to_date.isoformat(),
             'period': f"{from_date.strftime('%B %Y')}",
