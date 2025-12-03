@@ -451,6 +451,22 @@ export const api = {
   },
 
   /**
+   * Get bank statement transactions using Finance API (includes bank feed history)
+   */
+  async drillCashStatements({ fromDate, toDate, page = 1, pageSize = 50 } = {}) {
+    const params = new URLSearchParams();
+    if (fromDate) params.set('from_date', fromDate);
+    if (toDate) params.set('to_date', toDate);
+    params.set('page', page);
+    params.set('page_size', pageSize);
+
+    const response = await fetch(`${API_BASE}/api/drill/cash/statements?${params}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
    * Get receivables (invoices) for drill-down
    */
   async drillReceivables({ fromDate, toDate, status, overdueOnly, page = 1, pageSize = 50 } = {}) {

@@ -14,6 +14,7 @@ class XeroClient:
     """Wrapper for Xero API operations using direct REST calls."""
 
     BASE_URL = 'https://api.xero.com/api.xro/2.0'
+    FINANCE_URL = 'https://api.xero.com/finance.xro/1.0'
 
     def __init__(self):
         self.auth = XeroAuth()
@@ -43,6 +44,17 @@ class XeroClient:
 
         if response.status_code != 200:
             raise Exception(f"Xero API error: {response.status_code} - {response.text}")
+
+        return response.json()
+
+    def _get_finance(self, endpoint, params=None):
+        """Make a GET request to Xero Finance API."""
+        headers = self._get_headers()
+        url = f"{self.FINANCE_URL}/{endpoint}"
+        response = requests.get(url, headers=headers, params=params)
+
+        if response.status_code != 200:
+            raise Exception(f"Xero Finance API error: {response.status_code} - {response.text}")
 
         return response.json()
 
@@ -1077,3 +1089,136 @@ class XeroClient:
         results['has_more'] = end_idx < results['total_results']
 
         return results
+
+    # ==================== FINANCE API METHODS ====================
+
+    def get_bank_statement_accounting(self, bank_account_id, from_date=None, to_date=None, summary_only=False):
+        """
+        Get bank statement data with accounting details using the Finance API.
+
+        This endpoint provides access to actual bank statement data (from bank feeds)
+        along with reconciled accounting data, unlike the BankTransactions endpoint
+        which only shows manually created transactions.
+
+        Args:
+            bank_account_id: The Xero bank account ID (GUID)
+            from_date: Start date (default: 1 year ago)
+            to_date: End date (default: today)
+            summary_only: If True, returns only summary data
+
+        Returns:
+            dict: Bank statement data with transactions
+        """
+        today = date.today()
+        if from_date is None:
+            from_date = date(today.year - 1, today.month, today.day)
+        if to_date is None:
+            to_date = today
+
+        params = {
+            'fromDate': from_date.isoformat(),
+            'toDate': to_date.isoformat(),
+            'summaryOnly': 'true' if summary_only else 'false',
+        }
+
+        endpoint = f'BankStatementsPlus/BankStatementAccounting/{bank_account_id}'
+        data = self._get_finance(endpoint, params=params)
+
+        return data
+
+    def get_bank_statements_plus(self, from_date=None, to_date=None, page=1, page_size=50):
+        """
+        Get bank statement transactions from all accounts using Finance API.
+
+        This method fetches data from all bank accounts and combines them,
+        providing historical bank feed data that BankTransactions doesn't have.
+
+        Args:
+            from_date: Start date (default: 1 year ago)
+            to_date: End date (default: today)
+            page: Page number for pagination
+            page_size: Number of results per page
+
+        Returns:
+            dict: Combined bank statement transactions from all accounts
+        """
+        today = date.today()
+        if from_date is None:
+            from_date = date(today.year - 1, today.month, today.day)
+        if to_date is None:
+            to_date = today
+
+        # Get all bank accounts
+        bank_accounts = self.get_bank_accounts()
+
+        all_transactions = []
+
+        for account in bank_accounts:
+            account_id = account.get('account_id')
+            if not account_id:
+                continue
+
+            try:
+                data = self.get_bank_statement_accounting(
+                    bank_account_id=account_id,
+                    from_date=from_date,
+                    to_date=to_date,
+                    summary_only=False,
+                )
+
+                # Extract statement data
+                statement = data.get('statement', {})
+                statement_lines = statement.get('statementLines', [])
+
+                for line in statement_lines:
+                    posted_date = self._parse_xero_date(line.get('postedDate'))
+                    amount = float(line.get('amount', 0))
+
+                    all_transactions.append({
+                        'transaction_id': line.get('statementLineId'),
+                        'date': posted_date.isoformat() if posted_date else None,
+                        'type': 'CREDIT' if amount >= 0 else 'DEBIT',
+                        'description': line.get('description', ''),
+                        'reference': line.get('reference', ''),
+                        'amount': amount,
+                        'cheque_number': line.get('chequeNumber', ''),
+                        'is_reconciled': line.get('isReconciled', False),
+                        'bank_account_name': account.get('name', ''),
+                        'bank_account_id': account_id,
+                        'payee_name': line.get('payeeName', ''),
+                        # Include accounting data if available
+                        'accounting': line.get('accounting', {}),
+                    })
+
+            except Exception as e:
+                # Log error but continue with other accounts
+                print(f"Error fetching bank statements for account {account_id}: {e}")
+                continue
+
+        # Sort by date descending
+        all_transactions.sort(key=lambda x: x['date'] or '', reverse=True)
+
+        # Paginate
+        start_idx = (page - 1) * page_size
+        end_idx = start_idx + page_size
+        paginated = all_transactions[start_idx:end_idx]
+
+        # Calculate summary
+        total_in = sum(t['amount'] for t in paginated if t['amount'] > 0)
+        total_out = sum(t['amount'] for t in paginated if t['amount'] < 0)
+
+        return {
+            'transactions': paginated,
+            'page': page,
+            'page_size': page_size,
+            'total_count': len(all_transactions),
+            'has_more': end_idx < len(all_transactions),
+            'from_date': from_date.isoformat(),
+            'to_date': to_date.isoformat(),
+            'summary': {
+                'total_in': total_in,
+                'total_out': total_out,
+                'net_change': total_in + total_out,
+                'transaction_count': len(paginated),
+            },
+        }

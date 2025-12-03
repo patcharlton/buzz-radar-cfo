@@ -52,6 +52,7 @@ export function DrillDownDrawer() {
   const [page, setPage] = useState(1);
   const [dateRange, setDateRange] = useState('90'); // days
   const [statusFilter, setStatusFilter] = useState('AUTHORISED'); // For receivables/payables
+  const [cashSource, setCashSource] = useState('statements'); // 'statements' = Finance API (bank feed), 'transactions' = Accounting API
 
   // Date range presets
   const getDateRangeFilters = useCallback(() => {
@@ -108,7 +109,12 @@ export function DrillDownDrawer() {
 
         switch (drillType) {
           case DRILL_TYPES.CASH:
-            result = await api.drillCash({ ...combinedFilters, page });
+            // Use Finance API (bank statements) or Accounting API (transactions)
+            if (cashSource === 'statements') {
+              result = await api.drillCashStatements({ ...combinedFilters, page });
+            } else {
+              result = await api.drillCash({ ...combinedFilters, page });
+            }
             break;
           case DRILL_TYPES.RECEIVABLES:
             result = await api.drillReceivables({ ...combinedFilters, status: statusFilter, page });
@@ -145,12 +151,12 @@ export function DrillDownDrawer() {
     };
 
     fetchData();
-  }, [isOpen, drillType, filters, page, dateRange, statusFilter, getDateRangeFilters]);
+  }, [isOpen, drillType, filters, page, dateRange, statusFilter, cashSource, getDateRangeFilters]);
 
   // Reset page when filters or date range change
   useEffect(() => {
     setPage(1);
-  }, [filters, dateRange, statusFilter]);
+  }, [filters, dateRange, statusFilter, cashSource]);
 
   // Filter data client-side by search query
   const filteredData = useMemo(() => {
@@ -354,6 +360,18 @@ export function DrillDownDrawer() {
                     className="pl-9"
                   />
                 </div>
+                {/* Data source for Cash - Bank Statements (historical) vs Transactions */}
+                {drillType === DRILL_TYPES.CASH && (
+                  <Select value={cashSource} onValueChange={setCashSource}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="statements">Bank Statements</SelectItem>
+                      <SelectItem value="transactions">Transactions</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
                 {/* Status filter for Receivables/Payables */}
                 {[DRILL_TYPES.RECEIVABLES, DRILL_TYPES.PAYABLES].includes(drillType) && (
                   <Select value={statusFilter} onValueChange={setStatusFilter}>

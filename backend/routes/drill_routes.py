@@ -116,6 +116,45 @@ def drill_cash_accounts():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@drill_bp.route('/api/drill/cash/statements')
+@require_xero_connection
+def drill_cash_statements():
+    """
+    Get bank statement transactions using the Finance API.
+
+    This endpoint uses the Finance API's BankStatementsPlus which provides
+    access to actual bank feed data, unlike the BankTransactions endpoint
+    which only returns manually created transactions.
+
+    Query params:
+        from_date: Start date (ISO format, default: 1 year ago, use 'all' for 10 years)
+        to_date: End date (ISO format, default: today)
+        page: Page number (default: 1)
+        page_size: Results per page (default: 50, max: 100)
+    """
+    try:
+        today = date.today()
+        from_date = parse_date(request.args.get('from_date'), today - timedelta(days=365))
+        to_date = parse_date(request.args.get('to_date'), today)
+        page = request.args.get('page', 1, type=int)
+        page_size = min(request.args.get('page_size', 50, type=int), 100)
+
+        data = xero_client.get_bank_statements_plus(
+            from_date=from_date,
+            to_date=to_date,
+            page=page,
+            page_size=page_size,
+        )
+
+        return jsonify({
+            'success': True,
+            **data,
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # =============================================================================
 # RECEIVABLES DRILL-DOWN
 # =============================================================================
