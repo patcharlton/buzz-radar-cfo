@@ -95,10 +95,25 @@ def sync():
     try:
         # Force refresh by getting all dashboard data
         data = xero_client.get_dashboard_data()
+
+        # Also sync historical data from Xero
+        from services.history_sync import sync_all_from_xero
+        history_sync_result = sync_all_from_xero(xero_client, days_back=90)
+
         return jsonify({
             'success': True,
             'message': 'Data synced successfully',
             'data': data,
+            'history_sync': {
+                'bank_transactions': {
+                    'created': history_sync_result.get('bank_transactions', {}).get('created', 0),
+                    'updated': history_sync_result.get('bank_transactions', {}).get('updated', 0),
+                },
+                'invoices': {
+                    'created': history_sync_result.get('invoices', {}).get('created', 0),
+                    'updated': history_sync_result.get('invoices', {}).get('updated', 0),
+                },
+            },
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

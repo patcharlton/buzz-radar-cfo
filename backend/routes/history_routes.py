@@ -849,3 +849,49 @@ def get_runway_historical():
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@history_bp.route('/api/history/sync', methods=['POST'])
+@require_xero_connection
+def sync_history():
+    """
+    Sync historical data from Xero API.
+
+    This updates the historical tables with recent transactions and invoices
+    from Xero, ensuring the historical data stays up-to-date.
+
+    Query params:
+        days_back: Number of days to sync (default 90)
+
+    Returns:
+        Statistics about created/updated records
+    """
+    try:
+        days_back = request.args.get('days_back', 90, type=int)
+        days_back = min(max(days_back, 7), 365)  # Clamp between 7 and 365 days
+
+        from services.history_sync import sync_all_from_xero
+        xero_client = XeroClient()
+
+        result = sync_all_from_xero(xero_client, days_back=days_back)
+
+        return jsonify({
+            'success': result.get('success', True),
+            'bank_transactions': {
+                'fetched': result.get('bank_transactions', {}).get('fetched', 0),
+                'created': result.get('bank_transactions', {}).get('created', 0),
+                'updated': result.get('bank_transactions', {}).get('updated', 0),
+                'skipped': result.get('bank_transactions', {}).get('skipped', 0),
+            },
+            'invoices': {
+                'receivables_fetched': result.get('invoices', {}).get('receivables_fetched', 0),
+                'payables_fetched': result.get('invoices', {}).get('payables_fetched', 0),
+                'created': result.get('invoices', {}).get('created', 0),
+                'updated': result.get('invoices', {}).get('updated', 0),
+                'skipped': result.get('invoices', {}).get('skipped', 0),
+            },
+            'errors': result.get('errors', []),
+            'days_synced': days_back,
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
