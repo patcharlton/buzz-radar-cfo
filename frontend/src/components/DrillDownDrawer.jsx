@@ -117,13 +117,13 @@ export function DrillDownDrawer() {
             }
             break;
           case DRILL_TYPES.RECEIVABLES:
-            result = await api.drillReceivables({ ...combinedFilters, status: statusFilter, page });
+            result = await api.drillReceivables({ ...combinedFilters, status: statusFilter === 'ALL' ? null : statusFilter, page });
             break;
           case DRILL_TYPES.RECEIVABLES_DETAIL:
             result = await api.drillReceivablesDetail(filters.invoiceId);
             break;
           case DRILL_TYPES.PAYABLES:
-            result = await api.drillPayables({ ...combinedFilters, status: statusFilter, page });
+            result = await api.drillPayables({ ...combinedFilters, status: statusFilter === 'ALL' ? null : statusFilter, page });
             break;
           case DRILL_TYPES.PAYABLES_DETAIL:
             result = await api.drillPayablesDetail(filters.invoiceId);
@@ -381,7 +381,7 @@ export function DrillDownDrawer() {
                     <SelectContent>
                       <SelectItem value="AUTHORISED">Outstanding</SelectItem>
                       <SelectItem value="PAID">Paid</SelectItem>
-                      <SelectItem value="">All statuses</SelectItem>
+                      <SelectItem value="ALL">All statuses</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
