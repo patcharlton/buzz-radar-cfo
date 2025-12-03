@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+
+// Build version: 2025-12-03T22:40 - Force cache refresh for historical data fix
 import { Toaster, toast } from 'sonner';
 import { Shell } from '@/components/layout/Shell';
 import { CashPosition } from '@/components/dashboard/CashPosition';
