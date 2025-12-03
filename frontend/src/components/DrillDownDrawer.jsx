@@ -561,6 +561,11 @@ function InvoiceTable({ data, onInvoiceClick, type }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-medium">{inv.invoice_number}</span>
+              {inv.status === 'PAID' && (
+                <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-600">
+                  Paid
+                </Badge>
+              )}
               {inv.is_overdue && (
                 <Badge variant="destructive" className="text-xs">
                   {inv.days_overdue}d overdue
@@ -574,7 +579,16 @@ function InvoiceTable({ data, onInvoiceClick, type }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="font-mono font-medium">{formatCurrency(inv.amount_due)}</span>
+            <div className="text-right">
+              <span className={`font-mono font-medium ${inv.status === 'PAID' ? 'text-muted-foreground' : ''}`}>
+                {formatCurrency(inv.total)}
+              </span>
+              {inv.amount_due > 0 && inv.amount_due !== inv.total && (
+                <div className="text-xs text-amber-600 font-mono">
+                  {formatCurrency(inv.amount_due)} due
+                </div>
+              )}
+            </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
             <a
               href={type === 'invoice' ? xeroLinks.invoice(inv.invoice_id) : xeroLinks.bill(inv.invoice_id)}
