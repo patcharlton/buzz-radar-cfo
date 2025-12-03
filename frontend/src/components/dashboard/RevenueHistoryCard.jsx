@@ -52,27 +52,37 @@ export function RevenueHistoryCard({ trends, loading }) {
   // Get the last 12 months or available data
   const displayData = revenueData.slice(-12);
 
-  // Calculate statistics
-  const latestRevenue = displayData[displayData.length - 1]?.value || 0;
-  const previousRevenue = displayData.length > 1 ? displayData[displayData.length - 2]?.value : null;
+  // If latest month has 0 revenue (incomplete month), use previous month as "latest"
+  const lastEntry = displayData[displayData.length - 1];
+  const hasCurrentMonthData = lastEntry?.value > 0;
+
+  // For display purposes, skip the current month if it has no data
+  const effectiveData = hasCurrentMonthData ? displayData : displayData.slice(0, -1);
+
+  // Calculate statistics using effective data (excluding incomplete current month)
+  const latestRevenue = effectiveData[effectiveData.length - 1]?.value || 0;
+  const previousRevenue = effectiveData.length > 1 ? effectiveData[effectiveData.length - 2]?.value : null;
   const momChange = previousRevenue && previousRevenue > 0
     ? ((latestRevenue - previousRevenue) / previousRevenue) * 100
     : null;
 
-  // Calculate averages and totals
-  const totalRevenue = displayData.reduce((sum, d) => sum + (d.value || 0), 0);
-  const avgRevenue = displayData.length > 0 ? totalRevenue / displayData.length : 0;
-  const maxRevenue = Math.max(...displayData.map(d => d.value || 0));
-  const minRevenue = Math.min(...displayData.map(d => d.value || 0));
+  // Get the latest month name from effective data
+  const effectiveLatestMonth = effectiveData[effectiveData.length - 1]?.month || latestMonth;
+
+  // Calculate averages and totals using effective data
+  const totalRevenue = effectiveData.reduce((sum, d) => sum + (d.value || 0), 0);
+  const avgRevenue = effectiveData.length > 0 ? totalRevenue / effectiveData.length : 0;
+  const maxRevenue = Math.max(...effectiveData.map(d => d.value || 0));
+  const minRevenue = Math.min(...effectiveData.map(d => d.value || 0));
 
   // Find best and worst months
-  const bestMonth = displayData.find(d => d.value === maxRevenue);
-  const worstMonth = displayData.find(d => d.value === minRevenue);
+  const bestMonth = effectiveData.find(d => d.value === maxRevenue);
+  const worstMonth = effectiveData.find(d => d.value === minRevenue);
 
   // Calculate growth trend (first half vs second half)
-  const midPoint = Math.floor(displayData.length / 2);
-  const firstHalf = displayData.slice(0, midPoint);
-  const secondHalf = displayData.slice(midPoint);
+  const midPoint = Math.floor(effectiveData.length / 2);
+  const firstHalf = effectiveData.slice(0, midPoint);
+  const secondHalf = effectiveData.slice(midPoint);
   const firstHalfAvg = firstHalf.length > 0
     ? firstHalf.reduce((sum, d) => sum + (d.value || 0), 0) / firstHalf.length
     : 0;
@@ -99,7 +109,7 @@ export function RevenueHistoryCard({ trends, loading }) {
               P&L History
             </CardTitle>
             <Badge variant="secondary" className="text-xs">
-              {displayData.length} months
+              {effectiveData.length} months
             </Badge>
           </div>
         </CardHeader>
@@ -108,7 +118,7 @@ export function RevenueHistoryCard({ trends, loading }) {
           <div className="p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg border border-indigo-200 dark:border-indigo-900">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
-                {latestMonth} Revenue
+                {effectiveLatestMonth} Revenue
               </span>
               {momChange !== null && (
                 <Badge
@@ -139,9 +149,10 @@ export function RevenueHistoryCard({ trends, loading }) {
           {/* Revenue Sparkline */}
           <div>
             <Sparkline
-              data={displayData}
+              data={effectiveData}
               color="#6366f1"
               height={60}
+              showTooltip
             />
           </div>
 
@@ -191,7 +202,7 @@ export function RevenueHistoryCard({ trends, loading }) {
                 {formatCurrency(totalRevenue)}
               </p>
               <p className="text-xs text-muted-foreground">
-                Last {displayData.length} months
+                Last {effectiveData.length} months
               </p>
             </div>
 
