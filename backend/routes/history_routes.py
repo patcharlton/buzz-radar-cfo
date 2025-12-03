@@ -252,27 +252,77 @@ def trigger_backfill():
     """
     Trigger historical data backfill from Xero.
 
-    This runs synchronously for now. For production, consider using
-    a background task queue like Celery or RQ.
-
     Request body:
         months: Number of months to backfill (default 60)
         dry_run: If true, don't actually save (default false)
     """
+    import time
+    from datetime import timedelta
+
     try:
-        from scripts.backfill_history import run_backfill
-
         data = request.get_json() or {}
-        months = data.get('months', 60)
+        num_months = data.get('months', 60)
         dry_run = data.get('dry_run', False)
+        num_months = min(max(num_months, 1), 120)
 
-        months = min(max(months, 1), 120)
+        xero_client = XeroClient()
 
-        result = run_backfill(num_months=months, dry_run=dry_run)
+        # Generate list of months to backfill
+        today = date.today()
+        months_list = []
+        for i in range(num_months):
+            year = today.year
+            month = today.month - i
+            while month <= 0:
+                month += 12
+                year -= 1
+            months_list.append((year, month))
+
+        results = {
+            'success': 0,
+            'skipped': 0,
+            'errors': 0,
+        }
+
+        for year, month in months_list:
+            first_day = date(year, month, 1)
+            if month == 12:
+                last_day = date(year + 1, 1, 1) - timedelta(days=1)
+            else:
+                last_day = date(year, month + 1, 1) - timedelta(days=1)
+
+            # Check if already exists
+            existing = MonthlySnapshot.query.filter_by(snapshot_date=first_day).first()
+            if existing:
+                results['skipped'] += 1
+                continue
+
+            try:
+                # Get P&L for this month
+                pnl = xero_client.get_profit_and_loss(from_date=first_day, to_date=last_day)
+
+                if not dry_run:
+                    snapshot = MonthlySnapshot(
+                        snapshot_date=first_day,
+                        revenue=Decimal(str(pnl.get('revenue', 0))),
+                        expenses=Decimal(str(pnl.get('expenses', 0))),
+                        net_profit=Decimal(str(pnl.get('net_profit', 0))),
+                    )
+                    db.session.add(snapshot)
+                    db.session.commit()
+
+                results['success'] += 1
+
+                # Rate limiting - 1.1s between API calls
+                time.sleep(1.1)
+
+            except Exception as e:
+                results['errors'] += 1
+                db.session.rollback()
 
         return jsonify({
             'success': True,
-            'result': result
+            'result': results
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
