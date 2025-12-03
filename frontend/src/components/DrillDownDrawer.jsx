@@ -50,7 +50,8 @@ export function DrillDownDrawer() {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
-  const [dateRange, setDateRange] = useState('90'); // days
+  // Default to 'all' for receivables/payables to show historical CSV data
+  const [dateRange, setDateRange] = useState('all');
   const [statusFilter, setStatusFilter] = useState('AUTHORISED'); // For receivables/payables
   const [cashSource, setCashSource] = useState('transactions'); // 'transactions' = Accounting API (Finance API requires special approval)
 
