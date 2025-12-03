@@ -71,3 +71,6 @@ instance/
 
 # Cache
 backend/cache/
+
+# Historical data imports (contains client names/financial data)
+backend/data/imports/*.csv

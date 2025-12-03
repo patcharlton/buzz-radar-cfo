@@ -3,15 +3,23 @@ Drill-down API endpoints for transaction-level views.
 
 These endpoints support the DrillDownDrawer component for viewing
 detailed transactions behind summary numbers.
+
+Supports both Xero API data (recent) and historical CSV imports (older data).
 """
 from datetime import date, datetime, timedelta
 from flask import Blueprint, jsonify, request
 
 from xero import XeroClient, XeroAuth
+from database import db, HistoricalInvoice, HistoricalLineItem
 
 drill_bp = Blueprint('drill', __name__)
 xero_client = XeroClient()
 xero_auth = XeroAuth()
+
+
+# Date threshold for switching to historical data
+# Xero API has limited historical access, so older requests use CSV imports
+HISTORICAL_CUTOFF_DAYS = 365  # Use historical data for requests older than 1 year
 
 
 def require_xero_connection(f):
@@ -502,6 +510,334 @@ def drill_accounts():
         return jsonify({
             'success': True,
             'accounts': accounts,
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# =============================================================================
+# HISTORICAL DATA ENDPOINTS
+# =============================================================================
+
+def get_historical_invoices(invoice_type, from_date=None, to_date=None, status=None,
+                            page=1, page_size=50):
+    """
+    Query historical invoices from CSV imports.
+
+    Args:
+        invoice_type: 'receivable' or 'payable'
+        from_date: Start date filter
+        to_date: End date filter
+        status: Filter by status ('Paid', 'Awaiting Payment', or None for all)
+        page: Page number
+        page_size: Results per page
+
+    Returns:
+        dict with invoices list and metadata
+    """
+    query = HistoricalInvoice.query.filter_by(invoice_type=invoice_type)
+
+    if from_date:
+        query = query.filter(HistoricalInvoice.invoice_date >= from_date)
+    if to_date:
+        query = query.filter(HistoricalInvoice.invoice_date <= to_date)
+    if status:
+        # Map frontend status to historical status
+        if status.upper() == 'AUTHORISED':
+            query = query.filter(HistoricalInvoice.status == 'Awaiting Payment')
+        elif status.upper() == 'PAID':
+            query = query.filter(HistoricalInvoice.status == 'Paid')
+        # else: no filter (ALL)
+
+    # Order by date descending
+    query = query.order_by(HistoricalInvoice.invoice_date.desc())
+
+    # Paginate
+    total_count = query.count()
+    offset = (page - 1) * page_size
+    invoices = query.offset(offset).limit(page_size).all()
+
+    # Convert to API format
+    invoice_list = []
+    for inv in invoices:
+        invoice_list.append({
+            'invoice_id': f"hist_{inv.id}",  # Prefix to distinguish from Xero IDs
+            'invoice_number': inv.invoice_number,
+            'contact_name': inv.contact_name,
+            'issue_date': inv.invoice_date.isoformat() if inv.invoice_date else None,
+            'due_date': inv.due_date.isoformat() if inv.due_date else None,
+            'total': float(inv.total or 0),
+            'amount_due': float(inv.amount_due or 0),
+            'amount_paid': float(inv.amount_paid or 0),
+            'status': 'PAID' if inv.status == 'Paid' else 'AUTHORISED',
+            'is_overdue': inv.is_overdue(),
+            'days_overdue': inv.days_overdue(),
+            'currency': inv.currency,
+            'is_credit_note': inv.is_credit_note,
+            'source': 'historical',
+        })
+
+    return {
+        'invoices': invoice_list,
+        'has_more': offset + len(invoices) < total_count,
+        'total_count': total_count,
+        'page': page,
+        'page_size': page_size,
+        'from_date': from_date.isoformat() if from_date else None,
+        'to_date': to_date.isoformat() if to_date else None,
+        'source': 'historical_csv',
+    }
+
+
+@drill_bp.route('/api/drill/historical/receivables')
+def drill_historical_receivables():
+    """
+    Get historical receivables from CSV imports (no Xero connection required).
+
+    Query params:
+        from_date: Start date (ISO format)
+        to_date: End date (ISO format)
+        status: Filter by status (AUTHORISED, PAID, or empty for all)
+        page: Page number (default: 1)
+        page_size: Results per page (default: 50, max: 100)
+    """
+    try:
+        from_date = parse_date(request.args.get('from_date'))
+        to_date = parse_date(request.args.get('to_date'))
+        status = request.args.get('status')
+        page = request.args.get('page', 1, type=int)
+        page_size = min(request.args.get('page_size', 50, type=int), 100)
+
+        data = get_historical_invoices(
+            invoice_type='receivable',
+            from_date=from_date,
+            to_date=to_date,
+            status=status,
+            page=page,
+            page_size=page_size,
+        )
+
+        invoices = data['invoices']
+
+        # Calculate summary
+        total_outstanding = sum(inv['amount_due'] for inv in invoices)
+        total_overdue = sum(inv['amount_due'] for inv in invoices if inv['is_overdue'])
+        overdue_count = len([inv for inv in invoices if inv['is_overdue']])
+
+        data['summary'] = {
+            'total_outstanding': total_outstanding,
+            'total_overdue': total_overdue,
+            'invoice_count': len(invoices),
+            'overdue_count': overdue_count,
+        }
+
+        return jsonify({
+            'success': True,
+            **data,
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@drill_bp.route('/api/drill/historical/payables')
+def drill_historical_payables():
+    """
+    Get historical payables from CSV imports (no Xero connection required).
+
+    Query params:
+        from_date: Start date (ISO format)
+        to_date: End date (ISO format)
+        status: Filter by status (AUTHORISED, PAID, or empty for all)
+        page: Page number (default: 1)
+        page_size: Results per page (default: 50, max: 100)
+    """
+    try:
+        from_date = parse_date(request.args.get('from_date'))
+        to_date = parse_date(request.args.get('to_date'))
+        status = request.args.get('status')
+        page = request.args.get('page', 1, type=int)
+        page_size = min(request.args.get('page_size', 50, type=int), 100)
+
+        data = get_historical_invoices(
+            invoice_type='payable',
+            from_date=from_date,
+            to_date=to_date,
+            status=status,
+            page=page,
+            page_size=page_size,
+        )
+
+        invoices = data['invoices']
+
+        # Calculate summary
+        total_outstanding = sum(inv['amount_due'] for inv in invoices)
+        total_overdue = sum(inv['amount_due'] for inv in invoices if inv['is_overdue'])
+        overdue_count = len([inv for inv in invoices if inv['is_overdue']])
+
+        data['summary'] = {
+            'total_outstanding': total_outstanding,
+            'total_overdue': total_overdue,
+            'bill_count': len(invoices),
+            'overdue_count': overdue_count,
+        }
+
+        return jsonify({
+            'success': True,
+            **data,
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@drill_bp.route('/api/drill/historical/invoice/<int:invoice_id>')
+def drill_historical_invoice_detail(invoice_id):
+    """
+    Get details for a historical invoice including line items.
+
+    Path params:
+        invoice_id: The historical invoice ID (without 'hist_' prefix)
+    """
+    try:
+        invoice = HistoricalInvoice.query.get(invoice_id)
+
+        if not invoice:
+            return jsonify({'success': False, 'error': 'Invoice not found'}), 404
+
+        # Get line items
+        line_items = [item.to_dict() for item in invoice.line_items.all()]
+
+        return jsonify({
+            'success': True,
+            'invoice': {
+                **invoice.to_dict(),
+                'line_items': line_items,
+            },
+            'source': 'historical_csv',
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@drill_bp.route('/api/drill/historical/stats')
+def drill_historical_stats():
+    """
+    Get statistics about historical data available.
+
+    Returns counts and date ranges for historical data.
+    """
+    try:
+        from sqlalchemy import func
+
+        # Get counts
+        receivables_count = HistoricalInvoice.query.filter_by(invoice_type='receivable').count()
+        payables_count = HistoricalInvoice.query.filter_by(invoice_type='payable').count()
+        line_items_count = HistoricalLineItem.query.count()
+
+        # Get date ranges
+        receivables_range = db.session.query(
+            func.min(HistoricalInvoice.invoice_date),
+            func.max(HistoricalInvoice.invoice_date)
+        ).filter_by(invoice_type='receivable').first()
+
+        payables_range = db.session.query(
+            func.min(HistoricalInvoice.invoice_date),
+            func.max(HistoricalInvoice.invoice_date)
+        ).filter_by(invoice_type='payable').first()
+
+        return jsonify({
+            'success': True,
+            'stats': {
+                'receivables': {
+                    'count': receivables_count,
+                    'earliest_date': receivables_range[0].isoformat() if receivables_range[0] else None,
+                    'latest_date': receivables_range[1].isoformat() if receivables_range[1] else None,
+                },
+                'payables': {
+                    'count': payables_count,
+                    'earliest_date': payables_range[0].isoformat() if payables_range[0] else None,
+                    'latest_date': payables_range[1].isoformat() if payables_range[1] else None,
+                },
+                'line_items_count': line_items_count,
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def get_historical_revenue(from_date, to_date):
+    """
+    Calculate revenue from historical invoices for a period.
+
+    Revenue is calculated from invoices issued in the period (accrual basis),
+    excluding credit notes which are subtracted.
+
+    Returns:
+        dict with revenue breakdown
+    """
+    # Get receivable invoices in period
+    invoices = HistoricalInvoice.query.filter(
+        HistoricalInvoice.invoice_type == 'receivable',
+        HistoricalInvoice.invoice_date >= from_date,
+        HistoricalInvoice.invoice_date <= to_date,
+    ).all()
+
+    # Calculate totals
+    gross_revenue = 0
+    credit_notes_total = 0
+    tax_total = 0
+
+    for inv in invoices:
+        net_amount = float(inv.total or 0) - float(inv.tax_total or 0)
+        if inv.is_credit_note:
+            credit_notes_total += net_amount
+        else:
+            gross_revenue += net_amount
+        tax_total += float(inv.tax_total or 0)
+
+    return {
+        'gross_revenue': gross_revenue,
+        'credit_notes': credit_notes_total,
+        'net_revenue': gross_revenue - credit_notes_total,
+        'tax_total': tax_total,
+        'invoice_count': len([i for i in invoices if not i.is_credit_note]),
+        'credit_note_count': len([i for i in invoices if i.is_credit_note]),
+        'period': {
+            'from_date': from_date.isoformat(),
+            'to_date': to_date.isoformat(),
+        }
+    }
+
+
+@drill_bp.route('/api/drill/historical/revenue')
+def drill_historical_revenue():
+    """
+    Get historical revenue for a period.
+
+    Query params:
+        from_date: Start date (ISO format, required)
+        to_date: End date (ISO format, required)
+    """
+    try:
+        from_date = parse_date(request.args.get('from_date'))
+        to_date = parse_date(request.args.get('to_date'))
+
+        if not from_date or not to_date:
+            return jsonify({
+                'success': False,
+                'error': 'from_date and to_date are required'
+            }), 400
+
+        data = get_historical_revenue(from_date, to_date)
+
+        return jsonify({
+            'success': True,
+            **data,
+            'source': 'historical_csv',
         })
 
     except Exception as e:

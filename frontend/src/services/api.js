@@ -581,6 +581,78 @@ export const api = {
     });
     return response.json();
   },
+
+  // =============================================================================
+  // HISTORICAL DATA (from CSV imports)
+  // =============================================================================
+
+  /**
+   * Get historical receivables from CSV imports
+   */
+  async drillHistoricalReceivables({ fromDate, toDate, status, page = 1, pageSize = 50 } = {}) {
+    const params = new URLSearchParams();
+    if (fromDate) params.set('from_date', fromDate);
+    if (toDate) params.set('to_date', toDate);
+    if (status) params.set('status', status);
+    params.set('page', page);
+    params.set('page_size', pageSize);
+
+    const response = await fetch(`${API_BASE}/api/drill/historical/receivables?${params}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get historical payables from CSV imports
+   */
+  async drillHistoricalPayables({ fromDate, toDate, status, page = 1, pageSize = 50 } = {}) {
+    const params = new URLSearchParams();
+    if (fromDate) params.set('from_date', fromDate);
+    if (toDate) params.set('to_date', toDate);
+    if (status) params.set('status', status);
+    params.set('page', page);
+    params.set('page_size', pageSize);
+
+    const response = await fetch(`${API_BASE}/api/drill/historical/payables?${params}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get historical invoice detail
+   */
+  async drillHistoricalInvoice(invoiceId) {
+    const response = await fetch(`${API_BASE}/api/drill/historical/invoice/${invoiceId}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get historical data statistics
+   */
+  async getHistoricalStats() {
+    const response = await fetch(`${API_BASE}/api/drill/historical/stats`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get historical revenue for a period
+   */
+  async getHistoricalRevenue(fromDate, toDate) {
+    const params = new URLSearchParams();
+    params.set('from_date', fromDate);
+    params.set('to_date', toDate);
+
+    const response = await fetch(`${API_BASE}/api/drill/historical/revenue?${params}`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
 };
 
 // Xero deep link helpers

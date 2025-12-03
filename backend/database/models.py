@@ -245,3 +245,126 @@ class AccountBalanceHistory(db.Model):
             'balance': float(self.balance) if self.balance else 0,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
+
+
+class HistoricalInvoice(db.Model):
+    """Store historical invoice data imported from CSV exports."""
+
+    __tablename__ = 'historical_invoices'
+
+    id = db.Column(db.Integer, primary_key=True)
+    invoice_number = db.Column(db.String(100), nullable=False, index=True)
+    invoice_type = db.Column(db.String(20), nullable=False)  # receivable, payable, overpayment
+    is_credit_note = db.Column(db.Boolean, default=False)
+    contact_name = db.Column(db.String(300))
+    invoice_date = db.Column(db.Date, nullable=False, index=True)
+    due_date = db.Column(db.Date)
+    total = db.Column(db.Numeric(14, 2))  # Always positive, sign determined by type/is_credit_note
+    tax_total = db.Column(db.Numeric(14, 2))
+    amount_paid = db.Column(db.Numeric(14, 2))
+    amount_due = db.Column(db.Numeric(14, 2))
+    currency = db.Column(db.String(10), default='GBP')
+    gbp_total = db.Column(db.Numeric(14, 2))  # Converted to GBP for reporting
+    status = db.Column(db.String(50))  # Paid, Awaiting Payment
+    source = db.Column(db.String(20), default='csv_import')  # csv_import, xero_api
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    line_items = db.relationship('HistoricalLineItem', backref='invoice', lazy='dynamic',
+                                 cascade='all, delete-orphan')
+
+    # Composite unique constraint
+    __table_args__ = (
+        db.UniqueConstraint('invoice_number', 'invoice_type', name='unique_invoice_number_type'),
+    )
+
+    # Approximate currency conversion rates to GBP
+    CURRENCY_RATES = {
+        'GBP': 1.0,
+        'EUR': 0.85,
+        'USD': 0.79,
+    }
+
+    def calculate_gbp_total(self):
+        """Calculate GBP equivalent of total."""
+        rate = self.CURRENCY_RATES.get(self.currency, 1.0)
+        return float(self.total or 0) * rate
+
+    def signed_total(self):
+        """Get total with correct sign (negative for credit notes)."""
+        total = float(self.total or 0)
+        return -total if self.is_credit_note else total
+
+    def signed_gbp_total(self):
+        """Get GBP total with correct sign."""
+        total = float(self.gbp_total or 0)
+        return -total if self.is_credit_note else total
+
+    def net_total(self):
+        """Get total excluding tax."""
+        return float(self.total or 0) - float(self.tax_total or 0)
+
+    def to_dict(self):
+        """Convert to dictionary for API responses."""
+        return {
+            'id': self.id,
+            'invoice_number': self.invoice_number,
+            'invoice_type': self.invoice_type,
+            'is_credit_note': self.is_credit_note,
+            'contact_name': self.contact_name,
+            'invoice_date': self.invoice_date.isoformat() if self.invoice_date else None,
+            'due_date': self.due_date.isoformat() if self.due_date else None,
+            'total': float(self.total) if self.total else 0,
+            'tax_total': float(self.tax_total) if self.tax_total else 0,
+            'amount_paid': float(self.amount_paid) if self.amount_paid else 0,
+            'amount_due': float(self.amount_due) if self.amount_due else 0,
+            'currency': self.currency,
+            'gbp_total': float(self.gbp_total) if self.gbp_total else 0,
+            'status': self.status,
+            'source': self.source,
+            'is_overdue': self.is_overdue(),
+            'days_overdue': self.days_overdue(),
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+    def is_overdue(self):
+        """Check if invoice is overdue (unpaid and past due date)."""
+        if self.status == 'Paid' or not self.due_date:
+            return False
+        return self.due_date < datetime.utcnow().date()
+
+    def days_overdue(self):
+        """Calculate days overdue (0 if not overdue)."""
+        if not self.is_overdue():
+            return 0
+        delta = datetime.utcnow().date() - self.due_date
+        return delta.days
+
+
+class HistoricalLineItem(db.Model):
+    """Store line items for historical invoices."""
+
+    __tablename__ = 'historical_line_items'
+
+    id = db.Column(db.Integer, primary_key=True)
+    invoice_id = db.Column(db.Integer, db.ForeignKey('historical_invoices.id'), nullable=False, index=True)
+    description = db.Column(db.Text)
+    quantity = db.Column(db.Numeric(14, 4))
+    unit_amount = db.Column(db.Numeric(14, 4))
+    line_amount = db.Column(db.Numeric(14, 2))
+    account_code = db.Column(db.String(20))
+    tax_type = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        """Convert to dictionary for API responses."""
+        return {
+            'id': self.id,
+            'invoice_id': self.invoice_id,
+            'description': self.description,
+            'quantity': float(self.quantity) if self.quantity else 0,
+            'unit_amount': float(self.unit_amount) if self.unit_amount else 0,
+            'line_amount': float(self.line_amount) if self.line_amount else 0,
+            'account_code': self.account_code,
+            'tax_type': self.tax_type,
+        }
