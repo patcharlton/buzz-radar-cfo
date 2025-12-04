@@ -9,6 +9,7 @@ Supports both Xero API data (recent) and historical CSV imports (older data).
 from datetime import date, datetime, timedelta
 from flask import Blueprint, jsonify, request
 
+from sqlalchemy.orm import joinedload
 from xero import XeroClient, XeroAuth
 from database import db, HistoricalInvoice, HistoricalLineItem
 
@@ -701,13 +702,16 @@ def drill_historical_invoice_detail(invoice_id):
         invoice_id: The historical invoice ID (without 'hist_' prefix)
     """
     try:
-        invoice = HistoricalInvoice.query.get(invoice_id)
+        # Use eager loading to fetch invoice + line items in single query
+        invoice = HistoricalInvoice.query.options(
+            joinedload(HistoricalInvoice.line_items)
+        ).get(invoice_id)
 
         if not invoice:
             return jsonify({'success': False, 'error': 'Invoice not found'}), 404
 
-        # Get line items
-        line_items = [item.to_dict() for item in invoice.line_items.all()]
+        # Line items already loaded via joinedload
+        line_items = [item.to_dict() for item in invoice.line_items]
 
         return jsonify({
             'success': True,
@@ -779,33 +783,44 @@ def get_historical_revenue(from_date, to_date):
     Returns:
         dict with revenue breakdown
     """
-    # Get receivable invoices in period
-    invoices = HistoricalInvoice.query.filter(
+    from sqlalchemy import func, case
+
+    # Use database aggregation instead of Python loops for efficiency
+    result = db.session.query(
+        # Gross revenue (non-credit notes)
+        func.coalesce(func.sum(case(
+            (HistoricalInvoice.is_credit_note == False,
+             HistoricalInvoice.total - func.coalesce(HistoricalInvoice.tax_total, 0)),
+            else_=0
+        )), 0).label('gross_revenue'),
+        # Credit notes total
+        func.coalesce(func.sum(case(
+            (HistoricalInvoice.is_credit_note == True,
+             HistoricalInvoice.total - func.coalesce(HistoricalInvoice.tax_total, 0)),
+            else_=0
+        )), 0).label('credit_notes'),
+        # Tax total
+        func.coalesce(func.sum(HistoricalInvoice.tax_total), 0).label('tax_total'),
+        # Invoice count (non-credit notes)
+        func.sum(case((HistoricalInvoice.is_credit_note == False, 1), else_=0)).label('invoice_count'),
+        # Credit note count
+        func.sum(case((HistoricalInvoice.is_credit_note == True, 1), else_=0)).label('credit_note_count'),
+    ).filter(
         HistoricalInvoice.invoice_type == 'receivable',
         HistoricalInvoice.invoice_date >= from_date,
         HistoricalInvoice.invoice_date <= to_date,
-    ).all()
+    ).first()
 
-    # Calculate totals
-    gross_revenue = 0
-    credit_notes_total = 0
-    tax_total = 0
-
-    for inv in invoices:
-        net_amount = float(inv.total or 0) - float(inv.tax_total or 0)
-        if inv.is_credit_note:
-            credit_notes_total += net_amount
-        else:
-            gross_revenue += net_amount
-        tax_total += float(inv.tax_total or 0)
+    gross_revenue = float(result.gross_revenue or 0)
+    credit_notes = float(result.credit_notes or 0)
 
     return {
         'gross_revenue': gross_revenue,
-        'credit_notes': credit_notes_total,
-        'net_revenue': gross_revenue - credit_notes_total,
-        'tax_total': tax_total,
-        'invoice_count': len([i for i in invoices if not i.is_credit_note]),
-        'credit_note_count': len([i for i in invoices if i.is_credit_note]),
+        'credit_notes': credit_notes,
+        'net_revenue': gross_revenue - credit_notes,
+        'tax_total': float(result.tax_total or 0),
+        'invoice_count': int(result.invoice_count or 0),
+        'credit_note_count': int(result.credit_note_count or 0),
         'period': {
             'from_date': from_date.isoformat(),
             'to_date': to_date.isoformat(),

@@ -154,10 +154,10 @@ class AICache(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     cache_key = db.Column(db.String(100), unique=True, nullable=False, index=True)
-    cache_type = db.Column(db.String(50), nullable=False)  # daily_insights, monthly_analysis, forecast, etc.
+    cache_type = db.Column(db.String(50), nullable=False, index=True)  # daily_insights, monthly_analysis, forecast, etc.
     value = db.Column(db.Text, nullable=False)  # JSON-encoded response
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    expires_at = db.Column(db.DateTime, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False, index=True)  # Index for cleanup queries
 
     def is_expired(self):
         """Check if the cache entry is expired."""
@@ -273,9 +273,11 @@ class HistoricalInvoice(db.Model):
     line_items = db.relationship('HistoricalLineItem', backref='invoice', lazy='dynamic',
                                  cascade='all, delete-orphan')
 
-    # Composite unique constraint
+    # Composite unique constraint and indexes for query optimization
     __table_args__ = (
         db.UniqueConstraint('invoice_number', 'invoice_type', name='unique_invoice_number_type'),
+        db.Index('idx_invoice_type_date', 'invoice_type', 'invoice_date'),  # For drill-down queries
+        db.Index('idx_invoice_status', 'status'),  # For status filtering
     )
 
     # Approximate currency conversion rates to GBP
