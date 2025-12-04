@@ -319,49 +319,45 @@ def recalculate_monthly_snapshots(from_date, to_date):
     Recalculate monthly cash snapshots for affected months.
 
     This ensures the snapshots stay accurate after new transactions are added.
+    Uses batch aggregation for efficiency (single query instead of N queries per month).
     """
-    from sqlalchemy import func, extract
+    from sqlalchemy import func, extract, case
 
-    # Get all months between from_date and to_date
-    current = date(from_date.year, from_date.month, 1)
-    end = date(to_date.year, to_date.month, 1)
+    # Batch query: aggregate all months at once using date_trunc
+    monthly_totals = db.session.query(
+        func.date_trunc('month', BankTransaction.transaction_date).label('month'),
+        func.sum(BankTransaction.debit_gbp).label('total_in'),
+        func.sum(BankTransaction.credit_gbp).label('total_out'),
+        # Wages: sum credits where description contains WAGES
+        func.sum(case(
+            (BankTransaction.description.ilike('%WAGES%'), BankTransaction.credit_gbp),
+            else_=0
+        )).label('wages'),
+        # HMRC: sum credits where description contains HMRC
+        func.sum(case(
+            (BankTransaction.description.ilike('%HMRC%'), BankTransaction.credit_gbp),
+            else_=0
+        )).label('hmrc'),
+    ).filter(
+        BankTransaction.transaction_date >= date(from_date.year, from_date.month, 1),
+        BankTransaction.transaction_date <= to_date
+    ).group_by(
+        func.date_trunc('month', BankTransaction.transaction_date)
+    ).all()
 
-    while current <= end:
-        # Calculate snapshot for this month
-        month_start = current
-        if current.month == 12:
-            month_end = date(current.year + 1, 1, 1) - timedelta(days=1)
+    # Process results and upsert snapshots
+    for row in monthly_totals:
+        # Get the last day of the month for snapshot_date
+        month_start = row.month.date() if hasattr(row.month, 'date') else row.month
+        if month_start.month == 12:
+            month_end = date(month_start.year + 1, 1, 1) - timedelta(days=1)
         else:
-            month_end = date(current.year, current.month + 1, 1) - timedelta(days=1)
+            month_end = date(month_start.year, month_start.month + 1, 1) - timedelta(days=1)
 
-        # Get totals for the month
-        totals = db.session.query(
-            func.sum(BankTransaction.debit_gbp).label('total_in'),
-            func.sum(BankTransaction.credit_gbp).label('total_out'),
-        ).filter(
-            BankTransaction.transaction_date >= month_start,
-            BankTransaction.transaction_date <= month_end
-        ).first()
-
-        total_in = float(totals.total_in or 0)
-        total_out = float(totals.total_out or 0)
-
-        # Get wages and HMRC specifically
-        wages = db.session.query(
-            func.sum(BankTransaction.credit_gbp)
-        ).filter(
-            BankTransaction.transaction_date >= month_start,
-            BankTransaction.transaction_date <= month_end,
-            BankTransaction.description.ilike('%WAGES%')
-        ).scalar() or 0
-
-        hmrc = db.session.query(
-            func.sum(BankTransaction.credit_gbp)
-        ).filter(
-            BankTransaction.transaction_date >= month_start,
-            BankTransaction.transaction_date <= month_end,
-            BankTransaction.description.ilike('%HMRC%')
-        ).scalar() or 0
+        total_in = float(row.total_in or 0)
+        total_out = float(row.total_out or 0)
+        wages = float(row.wages or 0)
+        hmrc = float(row.hmrc or 0)
 
         # Upsert the snapshot
         existing = MonthlyCashSnapshot.query.filter_by(snapshot_date=month_end).first()
@@ -369,23 +365,17 @@ def recalculate_monthly_snapshots(from_date, to_date):
         if existing:
             existing.total_in = total_in
             existing.total_out = total_out
-            existing.wages_paid = float(wages)
-            existing.hmrc_paid = float(hmrc)
+            existing.wages_paid = wages
+            existing.hmrc_paid = hmrc
         else:
             snapshot = MonthlyCashSnapshot(
                 snapshot_date=month_end,
                 total_in=total_in,
                 total_out=total_out,
-                wages_paid=float(wages),
-                hmrc_paid=float(hmrc),
+                wages_paid=wages,
+                hmrc_paid=hmrc,
             )
             db.session.add(snapshot)
-
-        # Move to next month
-        if current.month == 12:
-            current = date(current.year + 1, 1, 1)
-        else:
-            current = date(current.year, current.month + 1, 1)
 
     db.session.commit()
 

@@ -21,15 +21,21 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Connection pool settings for PostgreSQL
+    # Optimized for Render Starter plan with 2 Gunicorn workers
     if DATABASE_URL and DATABASE_URL.startswith('postgresql://'):
         SQLALCHEMY_ENGINE_OPTIONS = {
-            'pool_pre_ping': True,  # Test connections before using
+            'pool_pre_ping': True,  # Test connections before using (handles stale connections)
             'pool_recycle': 300,    # Recycle connections after 5 minutes
-            'pool_size': 5,         # Number of connections to maintain
-            'max_overflow': 10,     # Allow up to 10 additional connections
+            'pool_size': 3,         # Connections per worker (3 workers × 2 = 6 base connections)
+            'max_overflow': 5,      # Allow 5 additional connections per worker for burst traffic
+            'pool_timeout': 30,     # Wait 30s for connection before raising error
+            'echo_pool': False,     # Set True to debug connection pool issues
         }
     else:
         SQLALCHEMY_ENGINE_OPTIONS = {}
+
+    # Redis cache URL (optional, for AI and dashboard caching)
+    REDIS_URL = os.getenv('REDIS_URL')
 
     # Xero OAuth2
     XERO_CLIENT_ID = os.getenv('XERO_CLIENT_ID')

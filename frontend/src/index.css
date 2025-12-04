@@ -356,4 +356,45 @@
   .insights-text {
     @apply text-sm;
   }
+
+  /* Virtual scrolling invoice list styles */
+  .invoice-table-virtual {
+    @apply border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden;
+  }
+
+  .invoice-header-virtual {
+    @apply flex bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 font-medium text-sm;
+  }
+
+  .invoice-header-virtual .invoice-cell {
+    @apply px-4 py-3;
+  }
+
+  .invoice-row-virtual {
+    @apply flex items-center border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors;
+  }
+
+  .invoice-row-virtual .invoice-cell {
+    @apply px-4 py-3 text-sm truncate;
+  }
+
+  .invoice-header-virtual .invoice-cell:nth-child(1),
+  .invoice-row-virtual .invoice-cell:nth-child(1) {
+    @apply w-[20%] font-medium;
+  }
+
+  .invoice-header-virtual .invoice-cell:nth-child(2),
+  .invoice-row-virtual .invoice-cell:nth-child(2) {
+    @apply w-[35%];
+  }
+
+  .invoice-header-virtual .invoice-cell:nth-child(3),
+  .invoice-row-virtual .invoice-cell:nth-child(3) {
+    @apply w-[20%] text-right tabular-nums;
+  }
+
+  .invoice-header-virtual .invoice-cell:nth-child(4),
+  .invoice-row-virtual .invoice-cell:nth-child(4) {
+    @apply w-[25%];
+  }
 }

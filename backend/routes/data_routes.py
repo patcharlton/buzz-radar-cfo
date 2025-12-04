@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify
 
 from xero import XeroClient, XeroAuth
+from ai.cache import cache_key, get_cached, set_cached
 from context.loader import (
     load_all_context,
     load_pipeline,
@@ -15,6 +16,9 @@ from context.loader import (
     get_q1_goals,
     get_transition_status,
 )
+
+# Dashboard cache TTL: 5 minutes (Xero data doesn't change frequently)
+DASHBOARD_CACHE_TTL = 300
 
 data_bp = Blueprint('data', __name__)
 xero_client = XeroClient()
@@ -38,8 +42,19 @@ def require_xero_connection(f):
 def dashboard():
     """Get all dashboard data in a single call."""
     try:
+        # Check cache first
+        cache_id = cache_key('dashboard')
+        cached_result = get_cached(cache_id, cache_type='dashboard')
+        if cached_result:
+            return jsonify({**cached_result, 'cached': True})
+
+        # Fetch fresh data
         data = xero_client.get_dashboard_data()
-        return jsonify(data)
+
+        # Cache the result
+        set_cached(cache_id, data, DASHBOARD_CACHE_TTL, cache_type='dashboard')
+
+        return jsonify({**data, 'cached': False})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
