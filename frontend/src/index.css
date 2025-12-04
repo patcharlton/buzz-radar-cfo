@@ -762,105 +762,128 @@
     @apply text-sm px-2 py-1 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800;
   }
 
-  /* Cash Concentration Card Styles */
+  /* Cash Concentration Card Styles - Donut Chart Layout */
   .concentration-card {
     @apply relative;
   }
 
   .concentration-header {
-    @apply flex items-center justify-between mb-3;
+    @apply flex flex-col gap-1 mb-3;
   }
 
-  .risk-badge {
-    @apply text-xs font-medium px-2 py-1 rounded-full;
+  .concentration-title-row {
+    @apply flex items-center gap-2;
   }
 
-  .risk-badge.critical {
-    @apply bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300;
+  .concentration-title-row h3 {
+    @apply m-0;
   }
 
-  .risk-badge.warning {
-    @apply bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300;
+  .warning-icon {
+    @apply text-lg;
   }
 
-  .risk-badge.low {
-    @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300;
-  }
-
-  .concentration-main {
-    @apply flex items-center justify-center gap-4 mb-4 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg;
-  }
-
-  .concentration-metric {
-    @apply text-center;
-  }
-
-  .concentration-metric .metric-value {
-    @apply text-2xl font-bold text-zinc-900 dark:text-zinc-100;
-  }
-
-  .concentration-metric .metric-label {
+  .concentration-period {
     @apply text-xs text-zinc-500 dark:text-zinc-400;
   }
 
-  .concentration-divider {
-    @apply w-px h-10 bg-zinc-200 dark:bg-zinc-700;
+  .concentration-content {
+    @apply flex gap-4 items-start;
   }
 
-  .concentration-chart {
-    @apply space-y-2;
+  /* Donut Chart */
+  .donut-chart-container {
+    @apply relative flex-shrink-0;
   }
 
-  .client-bar-row {
-    @apply text-sm;
+  .donut-chart {
+    @apply block;
   }
 
-  .client-info {
-    @apply flex items-center justify-between mb-1;
+  .donut-segment {
+    @apply transition-all duration-200;
   }
 
-  .client-name {
-    @apply font-medium text-zinc-700 dark:text-zinc-300 truncate max-w-[60%];
+  .donut-segment:hover,
+  .donut-segment.selected {
+    stroke-width: 32;
+    filter: brightness(1.1);
   }
 
-  .client-percentage {
+  .donut-center {
+    @apply absolute inset-0 flex items-center justify-center;
+  }
+
+  .risk-badge-donut {
+    @apply text-xs font-bold px-2 py-1 rounded-full;
+  }
+
+  /* Concentration Stats */
+  .concentration-stats {
+    @apply flex-1 min-w-0;
+  }
+
+  .top-client-stat {
+    @apply mb-2;
+  }
+
+  .top-client-stat .stat-value {
+    @apply block text-sm font-semibold truncate;
+  }
+
+  .top-client-stat .stat-label {
+    @apply text-xs text-zinc-500 dark:text-zinc-400;
+  }
+
+  .concentration-summary {
+    @apply text-xs text-zinc-600 dark:text-zinc-400 mb-3 pb-2 border-b border-zinc-100 dark:border-zinc-800;
+  }
+
+  /* Client Legend */
+  .client-legend {
+    @apply space-y-1;
+  }
+
+  .legend-item {
+    @apply flex items-center gap-2 text-xs cursor-pointer rounded px-1 py-0.5 -mx-1 transition-colors;
+  }
+
+  .legend-item:hover,
+  .legend-item.selected {
+    @apply bg-zinc-100 dark:bg-zinc-800;
+  }
+
+  .legend-color {
+    @apply w-2.5 h-2.5 rounded-full flex-shrink-0;
+  }
+
+  .legend-label {
+    @apply flex-1 truncate text-zinc-600 dark:text-zinc-400;
+  }
+
+  .legend-percent {
+    @apply font-medium text-zinc-700 dark:text-zinc-300;
+  }
+
+  /* Selected Client Detail */
+  .selected-client-detail {
+    @apply flex items-center gap-2 mt-3 p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded text-sm;
+  }
+
+  .selected-client-detail .detail-name {
+    @apply font-medium text-zinc-700 dark:text-zinc-300 flex-1 truncate;
+  }
+
+  .selected-client-detail .detail-amount {
+    @apply font-bold text-zinc-900 dark:text-zinc-100;
+  }
+
+  .selected-client-detail .detail-percent {
     @apply text-zinc-500 dark:text-zinc-400;
   }
 
-  .client-bar-container {
-    @apply h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mb-1;
-  }
-
-  .client-bar {
-    @apply h-full rounded-full transition-all duration-300;
-  }
-
-  .client-bar.color-0 {
-    @apply bg-blue-500;
-  }
-
-  .client-bar.color-1 {
-    @apply bg-indigo-500;
-  }
-
-  .client-bar.color-2 {
-    @apply bg-violet-500;
-  }
-
-  .client-bar.color-others {
-    @apply bg-zinc-300 dark:bg-zinc-600;
-  }
-
-  .client-amount {
-    @apply text-xs text-zinc-500 dark:text-zinc-400;
-  }
-
-  .client-bar-row.others {
-    @apply opacity-60;
-  }
-
   .concentration-footer {
-    @apply text-xs text-zinc-500 dark:text-zinc-400 pt-2 mt-2 border-t border-zinc-100 dark:border-zinc-800;
+    @apply text-xs text-zinc-500 dark:text-zinc-400 pt-2 mt-3 border-t border-zinc-100 dark:border-zinc-800;
   }
 
   /* Financial Query Card Styles */

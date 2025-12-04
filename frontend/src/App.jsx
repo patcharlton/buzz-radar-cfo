@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-// Build version: 2025-12-04T21:00 - Add runway fallback to historical endpoint
+// Build version: 2025-12-04T22:45 - Add Cash Concentration Risk widget
 import { Toaster, toast } from 'sonner';
 import { Shell } from '@/components/layout/Shell';
 import { CashPosition } from '@/components/dashboard/CashPosition';
@@ -17,6 +17,7 @@ import CashForecast from '@/components/CashForecast';
 import Anomalies from '@/components/Anomalies';
 import ProjectionWidget from '@/components/ProjectionWidget';
 import VendorSpendCard from '@/components/VendorSpendCard';
+import CashConcentrationCard from '@/components/CashConcentrationCard';
 import { LoginPage } from '@/components/LoginPage';
 import { DrillDownDrawer } from '@/components/DrillDownDrawer';
 import { DrillDownProvider, useDrillDown } from '@/contexts/DrillDownContext';
@@ -271,8 +272,11 @@ function AppContent({
               <RevenueHistoryCard trends={historyTrends} loading={!dashboardData} />
             </div>
 
-            {/* Vendor Spend Trends - Full Width */}
-            <VendorSpendCard />
+            {/* Vendor Spend and Cash Concentration Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 items-stretch">
+              <VendorSpendCard />
+              <CashConcentrationCard />
+            </div>
 
             {/* 3-Month Financial Projection */}
             <ProjectionWidget />

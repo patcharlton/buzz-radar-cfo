@@ -1,6 +1,10 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
+from datetime import date, timedelta
+from sqlalchemy import func
 
 from xero import XeroClient, XeroAuth
+from database.db import db
+from database.models import BankTransaction
 from ai.cache import cache_key, get_cached, set_cached
 from context.loader import (
     load_all_context,
@@ -333,6 +337,133 @@ def get_context_summary():
                 'target_2026': transition.get('revenue_mix', {}).get('target_end_2026', {}),
             },
             'q1_goals': q1_goals,
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@data_bp.route('/api/metrics/cash-concentration')
+def get_cash_concentration():
+    """
+    Calculate cash concentration risk based on revenue dependency on top clients.
+
+    Analyzes receivable payments over the last 12 months to determine
+    concentration risk from client dependency.
+
+    Risk levels:
+    - HIGH: Top 1 client > 40% of total
+    - MEDIUM: Top 3 clients > 70% of total
+    - LOW: Otherwise
+
+    Returns:
+        Client concentration data with risk assessment
+    """
+    try:
+        # Get date range for last 12 months
+        end_date = date.today()
+        start_date = end_date - timedelta(days=365)
+
+        # Query receivable payments from bank_transactions
+        payments = db.session.query(
+            BankTransaction.description,
+            func.sum(BankTransaction.debit_gbp).label('total_amount')
+        ).filter(
+            BankTransaction.source_type == 'Receive Money',
+            BankTransaction.transaction_date >= start_date,
+            BankTransaction.transaction_date <= end_date,
+            BankTransaction.debit_gbp > 0
+        ).group_by(
+            BankTransaction.description
+        ).all()
+
+        # Extract client names and aggregate by client
+        client_totals = {}
+        for payment in payments:
+            description = payment.description or ''
+            amount = float(payment.total_amount or 0)
+
+            # Extract client name from description
+            # Format: "Payment: Client Name" or just the description
+            if description.startswith('Payment: '):
+                client_name = description[9:].strip()
+            elif description.startswith('Payment from '):
+                client_name = description[13:].strip()
+            else:
+                client_name = description.strip()
+
+            # Skip empty or generic descriptions
+            if not client_name or client_name.lower() in ['', 'payment', 'transfer']:
+                continue
+
+            # Aggregate by client
+            if client_name in client_totals:
+                client_totals[client_name] += amount
+            else:
+                client_totals[client_name] = amount
+
+        # Calculate total received
+        total_received = sum(client_totals.values())
+
+        if total_received == 0:
+            return jsonify({
+                'success': True,
+                'period': 'Last 12 months',
+                'total_received': 0,
+                'top_1_percent': 0,
+                'top_3_percent': 0,
+                'top_5_percent': 0,
+                'concentration_risk': 'LOW',
+                'client_count': 0,
+                'clients': []
+            })
+
+        # Sort clients by amount descending
+        sorted_clients = sorted(
+            client_totals.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+
+        # Calculate percentages and cumulative percentages
+        clients_data = []
+        cumulative = 0
+        for client_name, amount in sorted_clients:
+            percent = (amount / total_received) * 100
+            cumulative += percent
+            clients_data.append({
+                'client': client_name,
+                'amount': round(amount, 2),
+                'percent': round(percent, 1),
+                'cumulative_percent': round(cumulative, 1)
+            })
+
+        # Calculate concentration metrics
+        top_1_percent = clients_data[0]['percent'] if len(clients_data) >= 1 else 0
+        top_3_percent = clients_data[2]['cumulative_percent'] if len(clients_data) >= 3 else (
+            clients_data[-1]['cumulative_percent'] if clients_data else 0
+        )
+        top_5_percent = clients_data[4]['cumulative_percent'] if len(clients_data) >= 5 else (
+            clients_data[-1]['cumulative_percent'] if clients_data else 0
+        )
+
+        # Determine risk level
+        if top_1_percent > 40:
+            concentration_risk = 'HIGH'
+        elif top_3_percent > 70:
+            concentration_risk = 'MEDIUM'
+        else:
+            concentration_risk = 'LOW'
+
+        return jsonify({
+            'success': True,
+            'period': 'Last 12 months',
+            'total_received': round(total_received, 2),
+            'top_1_percent': round(top_1_percent, 1),
+            'top_3_percent': round(top_3_percent, 1),
+            'top_5_percent': round(top_5_percent, 1),
+            'concentration_risk': concentration_risk,
+            'client_count': len(clients_data),
+            'clients': clients_data
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
