@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-// Build version: 2025-12-03T22:40 - Force cache refresh for historical data fix
+// Build version: 2025-12-04T18:00 - Add Vendor Spend Trends widget
 import { Toaster, toast } from 'sonner';
 import { Shell } from '@/components/layout/Shell';
 import { CashPosition } from '@/components/dashboard/CashPosition';
@@ -16,9 +16,10 @@ import { CashFlowChart } from '@/components/charts/CashFlowChart';
 import CashForecast from '@/components/CashForecast';
 import Anomalies from '@/components/Anomalies';
 import ProjectionWidget from '@/components/ProjectionWidget';
+import VendorSpendCard from '@/components/VendorSpendCard';
 import { LoginPage } from '@/components/LoginPage';
 import { DrillDownDrawer } from '@/components/DrillDownDrawer';
-import { DrillDownProvider } from '@/contexts/DrillDownContext';
+import { DrillDownProvider, useDrillDown } from '@/contexts/DrillDownContext';
 import api from '@/services/api';
 
 function App() {
@@ -255,6 +256,9 @@ function AppContent({
               <RunwayCard data={runwayData} loading={!dashboardData} />
               <RevenueHistoryCard trends={historyTrends} loading={!dashboardData} />
             </div>
+
+            {/* Vendor Spend Trends - Full Width */}
+            <VendorSpendCard />
 
             {/* 3-Month Financial Projection */}
             <ProjectionWidget />
