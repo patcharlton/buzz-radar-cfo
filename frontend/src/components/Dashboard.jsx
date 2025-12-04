@@ -12,6 +12,11 @@ import Anomalies from './Anomalies';
 import ProjectionWidget from './ProjectionWidget';
 import NotionSync from './NotionSync';
 import CsvUploadModal from './CsvUploadModal';
+import RunwayConfidenceCard from './RunwayConfidenceCard';
+import FixedCostFloorCard from './FixedCostFloorCard';
+import CashConcentrationCard from './CashConcentrationCard';
+import VendorSpendCard from './VendorSpendCard';
+import FinancialQueryInput from './FinancialQueryInput';
 
 function Dashboard() {
   const [isConnected, setIsConnected] = useState(false);
@@ -146,11 +151,28 @@ function Dashboard() {
         </div>
       ) : dashboardData ? (
         <>
-          {/* Key Metrics Row */}
+          {/* Row 1: Cash Position, Runway Confidence, Fixed Cost Floor */}
           <div className="metrics-grid">
             <CashPosition data={dashboardData.cash_position} />
+            <RunwayConfidenceCard />
+            <FixedCostFloorCard />
+          </div>
+
+          {/* Row 2: Receivables, Payables, Cash Concentration */}
+          <div className="metrics-grid">
             <Receivables data={dashboardData.receivables} />
             <Payables data={dashboardData.payables} />
+            <CashConcentrationCard />
+          </div>
+
+          {/* Row 3: Vendor Spend Trends (full width) */}
+          <div className="px-6 py-2">
+            <VendorSpendCard />
+          </div>
+
+          {/* Financial Query Input */}
+          <div className="px-6 py-2">
+            <FinancialQueryInput />
           </div>
 
           {/* AI Insights Panel */}

@@ -397,4 +397,540 @@
   .invoice-row-virtual .invoice-cell:nth-child(4) {
     @apply w-[25%];
   }
+
+  /* Metric Card Base Styles */
+  .metric-card {
+    @apply p-4 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800;
+  }
+
+  .metric-card h3 {
+    @apply text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2;
+  }
+
+  .metric-loading, .metric-error {
+    @apply text-sm text-zinc-500 dark:text-zinc-400 py-4;
+  }
+
+  .metric-error {
+    @apply text-red-500 dark:text-red-400;
+  }
+
+  /* Runway Card Styles */
+  .runway-card {
+    @apply relative overflow-hidden;
+  }
+
+  .runway-card.critical {
+    @apply border-red-300 dark:border-red-800;
+  }
+
+  .runway-card.warning {
+    @apply border-amber-300 dark:border-amber-800;
+  }
+
+  .runway-card.healthy {
+    @apply border-emerald-300 dark:border-emerald-800;
+  }
+
+  .runway-card.profitable {
+    @apply border-emerald-300 dark:border-emerald-800;
+  }
+
+  .runway-header {
+    @apply flex items-center justify-between mb-3;
+  }
+
+  .runway-badge {
+    @apply text-xs font-medium px-2 py-1 rounded-full;
+  }
+
+  .runway-badge.critical {
+    @apply bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300;
+  }
+
+  .runway-badge.warning {
+    @apply bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300;
+  }
+
+  .runway-badge.healthy, .runway-badge.success {
+    @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300;
+  }
+
+  .runway-main {
+    @apply mb-4;
+  }
+
+  .runway-expected {
+    @apply flex items-baseline gap-1;
+  }
+
+  .runway-value {
+    @apply text-3xl font-bold text-zinc-900 dark:text-zinc-100;
+  }
+
+  .runway-unit {
+    @apply text-lg text-zinc-500 dark:text-zinc-400;
+  }
+
+  .runway-burn {
+    @apply text-sm text-zinc-600 dark:text-zinc-400 mt-1;
+  }
+
+  .runway-bands {
+    @apply space-y-2 mb-3;
+  }
+
+  .runway-band {
+    @apply relative;
+  }
+
+  .runway-bar {
+    @apply h-6 rounded flex items-center justify-between px-2 text-xs font-medium;
+  }
+
+  .runway-band.best .runway-bar {
+    @apply bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300;
+  }
+
+  .runway-band.expected .runway-bar {
+    @apply bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300;
+  }
+
+  .runway-band.worst .runway-bar {
+    @apply bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300;
+  }
+
+  .runway-label {
+    @apply opacity-75;
+  }
+
+  .runway-months {
+    @apply font-semibold;
+  }
+
+  .runway-footer {
+    @apply text-xs text-zinc-500 dark:text-zinc-400 pt-2 border-t border-zinc-100 dark:border-zinc-800;
+  }
+
+  .runway-profitable {
+    @apply text-center py-2;
+  }
+
+  .metric-value {
+    @apply text-2xl font-bold;
+  }
+
+  .metric-subvalue {
+    @apply text-sm text-zinc-500 dark:text-zinc-400 mt-1;
+  }
+
+  /* Fixed Cost Floor Card Styles */
+  .fixed-cost-card {
+    @apply relative;
+  }
+
+  .fixed-cost-header {
+    @apply flex items-center justify-between mb-2;
+  }
+
+  .expand-btn {
+    @apply w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-sm font-bold;
+    @apply hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors;
+  }
+
+  .fixed-cost-main {
+    @apply mb-3;
+  }
+
+  .fixed-cost-value {
+    @apply text-2xl font-bold text-zinc-900 dark:text-zinc-100;
+  }
+
+  .fixed-cost-period {
+    @apply text-base font-normal text-zinc-500 dark:text-zinc-400;
+  }
+
+  .fixed-cost-label {
+    @apply text-sm text-zinc-500 dark:text-zinc-400;
+  }
+
+  .fixed-cost-runway {
+    @apply flex items-center justify-between text-sm mb-3 p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded;
+  }
+
+  .fixed-cost-runway .runway-value {
+    @apply text-base font-semibold;
+  }
+
+  .fixed-cost-runway .runway-value.critical {
+    @apply text-red-600 dark:text-red-400;
+  }
+
+  .fixed-cost-runway .runway-value.warning {
+    @apply text-amber-600 dark:text-amber-400;
+  }
+
+  .fixed-cost-runway .runway-value.healthy {
+    @apply text-emerald-600 dark:text-emerald-400;
+  }
+
+  .fixed-cost-breakdown {
+    @apply pt-3 border-t border-zinc-100 dark:border-zinc-800 space-y-2;
+  }
+
+  .breakdown-title {
+    @apply text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2;
+  }
+
+  .breakdown-item {
+    @apply text-sm;
+  }
+
+  .breakdown-category {
+    @apply flex items-center justify-between mb-1;
+  }
+
+  .category-name {
+    @apply text-zinc-700 dark:text-zinc-300;
+  }
+
+  .category-percentage {
+    @apply text-zinc-500 dark:text-zinc-400 text-xs;
+  }
+
+  .breakdown-bar-container {
+    @apply h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mb-1;
+  }
+
+  .breakdown-bar {
+    @apply h-full bg-blue-500 dark:bg-blue-400 rounded-full;
+  }
+
+  .breakdown-amount {
+    @apply text-xs text-zinc-500 dark:text-zinc-400;
+  }
+
+  .fixed-cost-footer {
+    @apply text-xs text-zinc-500 dark:text-zinc-400 pt-2 mt-2 border-t border-zinc-100 dark:border-zinc-800;
+  }
+
+  /* Vendor Spend Card Styles */
+  .vendor-card.full-width {
+    @apply w-full;
+  }
+
+  .vendor-header {
+    @apply flex items-center justify-between mb-4;
+  }
+
+  .vendor-controls {
+    @apply flex items-center gap-2;
+  }
+
+  .year-select {
+    @apply text-sm px-2 py-1 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800;
+  }
+
+  .vendor-summary {
+    @apply flex items-center justify-between mb-4 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg;
+  }
+
+  .vendor-total {
+    @apply flex flex-col;
+  }
+
+  .total-label {
+    @apply text-sm text-zinc-500 dark:text-zinc-400;
+  }
+
+  .total-value {
+    @apply text-xl font-bold text-zinc-900 dark:text-zinc-100;
+  }
+
+  .vendor-yoy {
+    @apply text-right;
+  }
+
+  .vendor-yoy.increase .yoy-value {
+    @apply text-red-600 dark:text-red-400;
+  }
+
+  .vendor-yoy.decrease .yoy-value {
+    @apply text-emerald-600 dark:text-emerald-400;
+  }
+
+  .yoy-value {
+    @apply text-lg font-semibold;
+  }
+
+  .yoy-label {
+    @apply text-xs text-zinc-500 dark:text-zinc-400 block;
+  }
+
+  .vendor-list {
+    @apply space-y-3;
+  }
+
+  .vendor-item {
+    @apply flex items-center gap-3;
+  }
+
+  .vendor-rank {
+    @apply w-6 h-6 flex items-center justify-center text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 rounded-full;
+  }
+
+  .vendor-details {
+    @apply flex-1 min-w-0;
+  }
+
+  .vendor-name {
+    @apply text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate mb-1;
+  }
+
+  .vendor-bar-container {
+    @apply h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden;
+  }
+
+  .vendor-bar {
+    @apply h-full bg-blue-500 dark:bg-blue-400 rounded-full transition-all duration-300;
+  }
+
+  .vendor-amounts {
+    @apply text-right;
+  }
+
+  .vendor-current {
+    @apply text-sm font-medium text-zinc-900 dark:text-zinc-100;
+  }
+
+  .vendor-change {
+    @apply text-xs;
+  }
+
+  .vendor-change.increase {
+    @apply text-red-600 dark:text-red-400;
+  }
+
+  .vendor-change.decrease {
+    @apply text-emerald-600 dark:text-emerald-400;
+  }
+
+  .vendor-change.new {
+    @apply text-zinc-400 dark:text-zinc-500;
+  }
+
+  .vendor-empty {
+    @apply text-center text-zinc-500 dark:text-zinc-400 py-8;
+  }
+
+  /* Cash Concentration Card Styles */
+  .concentration-card {
+    @apply relative;
+  }
+
+  .concentration-header {
+    @apply flex items-center justify-between mb-3;
+  }
+
+  .risk-badge {
+    @apply text-xs font-medium px-2 py-1 rounded-full;
+  }
+
+  .risk-badge.critical {
+    @apply bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300;
+  }
+
+  .risk-badge.warning {
+    @apply bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300;
+  }
+
+  .risk-badge.low {
+    @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300;
+  }
+
+  .concentration-main {
+    @apply flex items-center justify-center gap-4 mb-4 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg;
+  }
+
+  .concentration-metric {
+    @apply text-center;
+  }
+
+  .concentration-metric .metric-value {
+    @apply text-2xl font-bold text-zinc-900 dark:text-zinc-100;
+  }
+
+  .concentration-metric .metric-label {
+    @apply text-xs text-zinc-500 dark:text-zinc-400;
+  }
+
+  .concentration-divider {
+    @apply w-px h-10 bg-zinc-200 dark:bg-zinc-700;
+  }
+
+  .concentration-chart {
+    @apply space-y-2;
+  }
+
+  .client-bar-row {
+    @apply text-sm;
+  }
+
+  .client-info {
+    @apply flex items-center justify-between mb-1;
+  }
+
+  .client-name {
+    @apply font-medium text-zinc-700 dark:text-zinc-300 truncate max-w-[60%];
+  }
+
+  .client-percentage {
+    @apply text-zinc-500 dark:text-zinc-400;
+  }
+
+  .client-bar-container {
+    @apply h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mb-1;
+  }
+
+  .client-bar {
+    @apply h-full rounded-full transition-all duration-300;
+  }
+
+  .client-bar.color-0 {
+    @apply bg-blue-500;
+  }
+
+  .client-bar.color-1 {
+    @apply bg-indigo-500;
+  }
+
+  .client-bar.color-2 {
+    @apply bg-violet-500;
+  }
+
+  .client-bar.color-others {
+    @apply bg-zinc-300 dark:bg-zinc-600;
+  }
+
+  .client-amount {
+    @apply text-xs text-zinc-500 dark:text-zinc-400;
+  }
+
+  .client-bar-row.others {
+    @apply opacity-60;
+  }
+
+  .concentration-footer {
+    @apply text-xs text-zinc-500 dark:text-zinc-400 pt-2 mt-2 border-t border-zinc-100 dark:border-zinc-800;
+  }
+
+  /* Financial Query Card Styles */
+  .query-card.full-width {
+    @apply w-full;
+  }
+
+  .query-form {
+    @apply mb-3;
+  }
+
+  .query-input-wrapper {
+    @apply flex gap-2;
+  }
+
+  .query-input {
+    @apply flex-1 px-4 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800;
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400;
+  }
+
+  .query-submit {
+    @apply px-4 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg font-medium;
+    @apply hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .query-examples {
+    @apply flex flex-wrap items-center gap-2 mb-4;
+  }
+
+  .examples-label {
+    @apply text-sm text-zinc-500 dark:text-zinc-400;
+  }
+
+  .example-chip {
+    @apply text-xs px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-full;
+    @apply hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .query-loading {
+    @apply flex items-center justify-center gap-3 py-6 text-zinc-500 dark:text-zinc-400;
+  }
+
+  .loading-spinner {
+    @apply w-5 h-5 border-2 border-zinc-300 border-t-zinc-600 dark:border-zinc-600 dark:border-t-zinc-300 rounded-full animate-spin;
+  }
+
+  .query-error {
+    @apply flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-lg text-sm;
+  }
+
+  .error-icon {
+    @apply text-lg;
+  }
+
+  .query-result {
+    @apply space-y-4;
+  }
+
+  .result-answer {
+    @apply p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg;
+  }
+
+  .answer-value {
+    @apply text-2xl font-bold text-emerald-700 dark:text-emerald-300;
+  }
+
+  .answer-context {
+    @apply flex items-center gap-2 mt-1 text-sm text-emerald-600 dark:text-emerald-400;
+  }
+
+  .context-category {
+    @apply px-2 py-0.5 bg-emerald-100 dark:bg-emerald-800/50 rounded;
+  }
+
+  .result-breakdown {
+    @apply border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden;
+  }
+
+  .breakdown-header {
+    @apply flex items-center justify-between px-3 py-2 bg-zinc-50 dark:bg-zinc-800 text-sm font-medium;
+  }
+
+  .breakdown-count {
+    @apply text-zinc-500 dark:text-zinc-400 font-normal;
+  }
+
+  .breakdown-list {
+    @apply divide-y divide-zinc-100 dark:divide-zinc-800;
+  }
+
+  .breakdown-row {
+    @apply flex items-center justify-between px-3 py-2 text-sm;
+  }
+
+  .breakdown-desc {
+    @apply text-zinc-700 dark:text-zinc-300 truncate max-w-[70%];
+  }
+
+  .breakdown-amount {
+    @apply font-medium text-zinc-900 dark:text-zinc-100;
+  }
+
+  .breakdown-more {
+    @apply px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 italic;
+  }
+
+  .result-interpretation {
+    @apply text-xs text-zinc-500 dark:text-zinc-400 italic;
+  }
 }

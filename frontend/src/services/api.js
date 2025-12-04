@@ -856,6 +856,69 @@ export const api = {
     });
     return response.json();
   },
+
+  // =============================================================================
+  // FINANCIAL INTELLIGENCE METRICS
+  // =============================================================================
+
+  /**
+   * Get runway confidence bands based on cash flow variance
+   */
+  async getRunwayConfidence() {
+    const response = await fetch(`${API_BASE}/api/metrics/runway-confidence`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get fixed cost floor analysis
+   */
+  async getFixedCosts() {
+    const response = await fetch(`${API_BASE}/api/metrics/fixed-costs`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get vendor spend trends with YoY comparison
+   */
+  async getVendorTrends(year = null, limit = 15) {
+    let url = `${API_BASE}/api/metrics/vendor-trends?limit=${limit}`;
+    if (year) {
+      url += `&year=${year}`;
+    }
+    const response = await fetch(url, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get cash concentration risk analysis
+   */
+  async getCashConcentration() {
+    const response = await fetch(`${API_BASE}/api/metrics/cash-concentration`, {
+      credentials: 'include',
+    });
+    return response.json();
+  },
+
+  /**
+   * Process natural language financial query
+   */
+  async queryFinancial(question) {
+    const response = await fetch(`${API_BASE}/api/query/financial`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ question }),
+    });
+    return response.json();
+  },
 };
 
 // Xero deep link helpers
