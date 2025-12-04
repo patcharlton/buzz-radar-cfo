@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-// Build version: 2025-12-04T18:00 - Add Vendor Spend Trends widget
+// Build version: 2025-12-04T21:00 - Add runway fallback to historical endpoint
 import { Toaster, toast } from 'sonner';
 import { Shell } from '@/components/layout/Shell';
 import { CashPosition } from '@/components/dashboard/CashPosition';
@@ -74,10 +74,24 @@ function App() {
       const data = await api.getRunway();
       if (data.success) {
         setRunwayData(data);
+        return;
+      }
+      // Primary endpoint failed, try historical fallback
+      console.warn('Primary runway endpoint failed, trying historical:', data.error);
+      const historicalData = await api.getRunwayHistorical();
+      if (historicalData.success) {
+        setRunwayData(historicalData);
       }
     } catch (err) {
-      // Silently fail - runway data is optional
-      console.warn('Failed to load runway data:', err);
+      // Both failed, try historical as last resort
+      try {
+        const historicalData = await api.getRunwayHistorical();
+        if (historicalData.success) {
+          setRunwayData(historicalData);
+        }
+      } catch {
+        console.warn('Failed to load runway data from all sources:', err);
+      }
     }
   }, []);
 
