@@ -364,11 +364,12 @@ def get_cash_concentration():
         start_date = end_date - timedelta(days=365)
 
         # Query receivable payments from bank_transactions
+        # Use 'Receivable Payment' which represents client invoice payments
         payments = db.session.query(
             BankTransaction.description,
             func.sum(BankTransaction.debit_gbp).label('total_amount')
         ).filter(
-            BankTransaction.source_type == 'Receive Money',
+            BankTransaction.source_type == 'Receivable Payment',
             BankTransaction.transaction_date >= start_date,
             BankTransaction.transaction_date <= end_date,
             BankTransaction.debit_gbp > 0
@@ -378,6 +379,18 @@ def get_cash_concentration():
 
         # Extract client names and aggregate by client
         client_totals = {}
+
+        def normalize_client_name(name):
+            """Normalize client names to group related entities together."""
+            name = name.strip()
+            # Common suffixes to remove for grouping
+            suffixes = [' Limited', ' Ltd', ' Ltd.', ' UK Limited', ' Company', ' Inc', ' Inc.', ' PLC', ' plc']
+            normalized = name
+            for suffix in suffixes:
+                if normalized.endswith(suffix):
+                    normalized = normalized[:-len(suffix)]
+            return normalized
+
         for payment in payments:
             description = payment.description or ''
             amount = float(payment.total_amount or 0)
@@ -395,14 +408,23 @@ def get_cash_concentration():
             if not client_name or client_name.lower() in ['', 'payment', 'transfer']:
                 continue
 
-            # Aggregate by client
-            if client_name in client_totals:
-                client_totals[client_name] += amount
+            # Normalize client name for grouping (but keep original for display)
+            normalized = normalize_client_name(client_name)
+
+            # Aggregate by normalized name
+            if normalized in client_totals:
+                client_totals[normalized]['amount'] += amount
+                # Keep the most complete name for display
+                if len(client_name) > len(client_totals[normalized]['display_name']):
+                    client_totals[normalized]['display_name'] = client_name
             else:
-                client_totals[client_name] = amount
+                client_totals[normalized] = {
+                    'amount': amount,
+                    'display_name': client_name
+                }
 
         # Calculate total received
-        total_received = sum(client_totals.values())
+        total_received = sum(c['amount'] for c in client_totals.values())
 
         if total_received == 0:
             return jsonify({
@@ -420,18 +442,20 @@ def get_cash_concentration():
         # Sort clients by amount descending
         sorted_clients = sorted(
             client_totals.items(),
-            key=lambda x: x[1],
+            key=lambda x: x[1]['amount'],
             reverse=True
         )
 
         # Calculate percentages and cumulative percentages
         clients_data = []
         cumulative = 0
-        for client_name, amount in sorted_clients:
+        for normalized_name, client_info in sorted_clients:
+            amount = client_info['amount']
+            display_name = client_info['display_name']
             percent = (amount / total_received) * 100
             cumulative += percent
             clients_data.append({
-                'client': client_name,
+                'client': display_name,
                 'amount': round(amount, 2),
                 'percent': round(percent, 1),
                 'cumulative_percent': round(cumulative, 1)
