@@ -180,6 +180,8 @@ def get_runway():
     Runway is calculated as: current_cash / avg_monthly_expenses
     This shows how long cash would last if revenue stopped completely.
 
+    Falls back to historical snapshot data if Xero API fails.
+
     Returns:
         runway_months: Months cash would last at current expense rate
         avg_monthly_expenses: Average monthly expenses from P&L
@@ -243,7 +245,52 @@ def get_runway():
             'months_analyzed': months_analyzed
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        # Fall back to historical snapshot data
+        try:
+            from database.models import MonthlyCashSnapshot
+            from sqlalchemy import func
+            from statistics import mean
+
+            # Get last 6 months of snapshots
+            snapshots = MonthlyCashSnapshot.query.order_by(
+                MonthlyCashSnapshot.snapshot_date.desc()
+            ).limit(6).all()
+
+            if not snapshots:
+                return jsonify({'success': False, 'error': 'No historical data available'}), 400
+
+            # Calculate from snapshots
+            monthly_expenses = [float(s.total_out or 0) for s in snapshots if s.total_out]
+            monthly_revenues = [float(s.total_in or 0) for s in snapshots if s.total_in]
+
+            avg_monthly_expenses = mean(monthly_expenses) if monthly_expenses else 0
+            avg_monthly_revenue = mean(monthly_revenues) if monthly_revenues else 0
+
+            # Get current cash from latest snapshot
+            current_cash = float(snapshots[0].closing_balance or 0) if snapshots[0].closing_balance else 0
+
+            is_profitable = avg_monthly_revenue >= avg_monthly_expenses
+            months_analyzed = len(snapshots)
+
+            if avg_monthly_expenses <= 0:
+                runway_months = None
+            elif current_cash <= 0:
+                runway_months = 0
+            else:
+                runway_months = current_cash / avg_monthly_expenses
+
+            return jsonify({
+                'success': True,
+                'runway_months': round(runway_months, 1) if runway_months is not None else None,
+                'avg_monthly_burn': round(avg_monthly_expenses, 2),
+                'avg_monthly_revenue': round(avg_monthly_revenue, 2),
+                'current_cash': round(current_cash, 2),
+                'is_profitable': is_profitable,
+                'calculation_basis': f'{months_analyzed}-month historical average',
+                'months_analyzed': months_analyzed
+            })
+        except Exception as fallback_error:
+            return jsonify({'success': False, 'error': f'Xero API failed: {str(e)}. Fallback also failed: {str(fallback_error)}'}), 500
 
 
 @history_bp.route('/api/history/backfill', methods=['POST'])
