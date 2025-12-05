@@ -383,12 +383,25 @@ def get_cash_concentration():
         def normalize_client_name(name):
             """Normalize client names to group related entities together."""
             name = name.strip()
-            # Common suffixes to remove for grouping
-            suffixes = [' Limited', ' Ltd', ' Ltd.', ' UK Limited', ' Company', ' Inc', ' Inc.', ' PLC', ' plc']
+            # Common suffixes to remove for grouping - order matters (longer first)
+            suffixes = [
+                ' UK Limited', ' UK Ltd', ' UK Ltd.',
+                ' Limited', ' Ltd', ' Ltd.',
+                ' Company', ' Corp', ' Corporation',
+                ' Inc.', ' Inc',
+                ' PLC', ' plc', ' Plc',
+                ' LLP', ' LP', ' LLC',
+            ]
             normalized = name
-            for suffix in suffixes:
-                if normalized.endswith(suffix):
-                    normalized = normalized[:-len(suffix)]
+            # Keep removing suffixes until none match
+            changed = True
+            while changed:
+                changed = False
+                for suffix in suffixes:
+                    if normalized.endswith(suffix):
+                        normalized = normalized[:-len(suffix)].strip()
+                        changed = True
+                        break
             return normalized
 
         for payment in payments:
